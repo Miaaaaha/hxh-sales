@@ -113,6 +113,33 @@ label{font-size:12px;font-weight:500;color:var(--t2);margin-bottom:4px;display:b
 .price{font-family:'SF Mono',Menlo,monospace;font-size:13px;font-weight:500}
 .empty{padding:40px;text-align:center;color:var(--t3);font-size:13px}
 
+/* Document type tabs */
+.doc-tabs{display:flex;gap:4px;flex-wrap:wrap}
+.dtab{padding:5px 10px;font-size:11px;font-weight:600;border:1px solid var(--bdr2);border-radius:6px;background:#fff;cursor:pointer;color:var(--t2);transition:all .15s;white-space:nowrap}
+.dtab.active{background:var(--acc);color:#fff;border-color:var(--acc)}
+.dtab:hover:not(.active){background:var(--bg2)}
+
+/* Document preview */
+.doc{font-family:'Times New Roman',Georgia,serif;font-size:12.5px;line-height:1.6;color:#1a1a1a}
+.doc-lh{border-bottom:2px solid #c0392b;padding-bottom:10px;margin-bottom:16px;display:flex;justify-content:space-between;align-items:flex-end}
+.doc-co{font-size:17px;font-weight:700;color:#c0392b;letter-spacing:.3px}
+.doc-h1{font-size:14px;font-weight:700;text-align:center;letter-spacing:2px;margin:14px 0;text-transform:uppercase;border-top:1px solid #ccc;border-bottom:1px solid #ccc;padding:7px 0}
+.doc-parties{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin:14px 0;font-size:12px}
+.dp-lbl{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:#999;border-bottom:1px solid #ddd;padding-bottom:3px;margin-bottom:6px}
+.doc-tb{width:100%;border-collapse:collapse;margin:14px 0;font-size:12px}
+.doc-tb th{background:#f0ede9;padding:6px 10px;text-align:left;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;border:1px solid #ccc}
+.doc-tb td{padding:7px 10px;border:1px solid #ccc;vertical-align:top}
+.doc-tb td.r{text-align:right;font-family:'Courier New',monospace}
+.doc-totals{float:right;width:300px;font-size:12px;margin-top:4px}
+.dtr{display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid #eee;font-size:12px}
+.dtr.final{font-size:14px;font-weight:700;border-top:2px solid #333;border-bottom:none;padding-top:8px;margin-top:4px}
+.doc-kv{display:grid;grid-template-columns:160px 1fr;gap:3px 0;font-size:11.5px}
+.doc-kv span:nth-child(odd){font-weight:600}
+.doc-bank{background:#f8f7f4;border:1px solid #e4e1db;border-radius:6px;padding:12px 14px;margin-top:10px;font-size:11.5px;line-height:1.8}
+.doc-notice{background:#fef3e2;border-left:3px solid #f59e0b;padding:8px 14px;font-size:11.5px;margin-bottom:14px;border-radius:0 4px 4px 0}
+.doc-cert{border:1px solid #ddd;border-radius:6px;padding:10px 14px;margin-top:6px;font-size:11.5px;font-style:italic;color:#555}
+.doc-sign{border-top:1px solid #333;padding-top:4px;min-width:200px;text-align:center;font-size:11px}
+
 @media(max-width:768px){
   .metrics{grid-template-columns:repeat(2,1fr)}
   .fgrid{grid-template-columns:1fr}
@@ -223,35 +250,63 @@ label{font-size:12px;font-weight:500;color:var(--t2);margin-bottom:4px;display:b
     <div id="sec-quote" class="section">
       <div class="ql">
         <div class="card">
-          <div class="ch"><span class="ct">报价配置</span></div>
+          <div class="ch"><span class="ct">单证配置</span></div>
           <div class="card-body">
             <div class="fcol">
-              <div class="fg"><label>客户公司</label><input type="text" id="q-company" placeholder="Titanium Power Solutions"></div>
-              <div class="fg"><label>目的港</label>
-                <select id="q-port">
-                  <option>Lagos, Nigeria</option><option>Mombasa, Kenya</option><option>Tema, Ghana</option>
-                  <option>Dar es Salaam, Tanzania</option><option>Jeddah, Saudi Arabia</option>
-                  <option>Dubai, UAE</option><option>Karachi, Pakistan</option><option>Manila, Philippines</option>
-                  <option>自定义...</option>
-                </select>
+              <div class="fg">
+                <label>单证类型</label>
+                <div class="doc-tabs">
+                  <button class="dtab active" onclick="setDocType('quote',this)">Initial Quote</button>
+                  <button class="dtab" onclick="setDocType('pi',this)">Proforma Invoice</button>
+                  <button class="dtab" onclick="setDocType('deposit',this)">Deposit PI</button>
+                  <button class="dtab" onclick="setDocType('ci',this)">Commercial Invoice</button>
+                </div>
               </div>
-              <div class="fg"><label>选择机型</label>
-                <select id="q-model" onchange="updateQuote()"><option value="">-- 选择库存 --</option></select>
+              <div class="fg"><label>Buyer / Company</label><input type="text" id="q-company" placeholder="Titanium Power Solutions Ltd." oninput="updateQuote()"></div>
+              <div class="fg"><label>Buyer Address</label><textarea id="q-address" rows="2" placeholder="123 Industrial Zone, Lagos, Nigeria" oninput="updateQuote()"></textarea></div>
+              <div class="fgrid">
+                <div class="fg"><label>Port of Destination</label>
+                  <select id="q-port" onchange="updateQuote()">
+                    <option>Lagos, Nigeria</option><option>Mombasa, Kenya</option><option>Tema, Ghana</option>
+                    <option>Dar es Salaam, Tanzania</option><option>Jeddah, Saudi Arabia</option>
+                    <option>Dubai, UAE</option><option>Karachi, Pakistan</option><option>Manila, Philippines</option>
+                  </select>
+                </div>
+                <div class="fg"><label>Port of Loading</label>
+                  <select id="q-loading" onchange="updateQuote()">
+                    <option>Shanghai, China</option><option>Tianjin, China</option>
+                    <option>Ningbo, China</option><option>Guangzhou, China</option><option>Shenzhen, China</option>
+                  </select>
+                </div>
+              </div>
+              <div class="fg"><label>Select Model</label>
+                <select id="q-model" onchange="updateQuote()"><option value="">-- Select from inventory --</option></select>
               </div>
               <div class="fgrid">
-                <div class="fg"><label>数量</label><input type="number" id="q-qty" value="1" min="1" oninput="updateQuote()"></div>
-                <div class="fg"><label>贸易条款</label>
+                <div class="fg"><label>Quantity</label><input type="number" id="q-qty" value="1" min="1" oninput="updateQuote()"></div>
+                <div class="fg"><label>Incoterms 2020</label>
                   <select id="q-inco" onchange="updateQuote()"><option>CIF</option><option>FOB</option><option>EXW</option></select>
                 </div>
               </div>
-              <div class="fg"><label>折扣 (%)</label><input type="number" id="q-disc" value="0" min="0" max="30" oninput="updateQuote()"></div>
-              <button class="btn btn-primary" onclick="generateQuote()"><i class="ti ti-file-invoice"></i> 生成报价单</button>
+              <div class="fg"><label>Discount (%)</label><input type="number" id="q-disc" value="0" min="0" max="30" oninput="updateQuote()"></div>
+              <div class="fg" id="ref-pi-group" style="display:none">
+                <label>Reference PI No.</label>
+                <input type="text" id="q-ref-pi" placeholder="HXH-PI-20260522-001" oninput="updateQuote()">
+              </div>
+              <div style="display:flex;gap:8px">
+                <button class="btn btn-primary" style="flex:1" onclick="generateQuote()"><i class="ti ti-device-floppy"></i> Save & Log</button>
+                <button class="btn" onclick="printDoc()" title="Print / Export PDF"><i class="ti ti-printer"></i></button>
+              </div>
             </div>
           </div>
         </div>
-        <div class="card">
-          <div class="ch"><span class="ct">报价预览</span></div>
-          <div class="card-body" id="quote-content" style="color:var(--t3);font-size:13px">选择机型后自动生成报价预览</div>
+        <div class="card" style="overflow:auto">
+          <div class="ch">
+            <span class="ct" id="doc-preview-title">Document Preview</span>
+          </div>
+          <div id="quote-content" style="padding:20px;color:var(--t3);font-size:13px">
+            Select a model to generate the document preview.
+          </div>
         </div>
       </div>
     </div>
@@ -475,47 +530,339 @@ function addActivity(text,type='system') {
   if(state.activity.length>50)state.activity=state.activity.slice(0,50);
 }
 
+let docType = 'quote';
+
+function setDocType(type, el) {
+  docType = type;
+  document.querySelectorAll('.dtab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('ref-pi-group').style.display = (type==='deposit'||type==='ci') ? '' : 'none';
+  const titles = {quote:'Initial Quotation', pi:'Proforma Invoice', deposit:'Deposit Proforma Invoice', ci:'Commercial Invoice'};
+  document.getElementById('doc-preview-title').textContent = titles[type];
+  updateQuote();
+}
+
 function populateModelSelect() {
   const sel=document.getElementById('q-model'),val=sel.value;
-  sel.innerHTML='<option value="">-- 选择库存 --</option>'+
+  sel.innerHTML='<option value="">-- Select from inventory --</option>'+
     state.inventory.filter(i=>i.qty>0).map(i=>`<option value="${i.id}">${i.model} (${i.power}) — $${i.price.toLocaleString()}</option>`).join('');
   if(val)sel.value=val;
 }
 
-function updateQuote() {
+function docNo(prefix) {
+  const d=new Date();
+  return `HXH-${prefix}-${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}-001`;
+}
+function usd(n) { return 'USD '+n.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2}); }
+function fmtDate(d=new Date()) { return d.toLocaleDateString('en-GB',{day:'2-digit',month:'long',year:'numeric'}); }
+function addDays(d,n) { const r=new Date(d); r.setDate(r.getDate()+n); return r; }
+function leadTime(port) { return /Nigeria|Kenya|Ghana|Tanzania|Cameroon/i.test(port)?'25–40':'15–30'; }
+
+function calcValues() {
   const modelId=parseInt(document.getElementById('q-model').value);
-  if(!modelId){document.getElementById('quote-content').innerHTML='<div style="color:var(--t3);font-size:13px;padding:12px 0">选择机型后自动生成报价预览</div>';return;}
-  const item=state.inventory.find(x=>x.id===modelId);if(!item)return;
-  const qty=parseInt(document.getElementById('q-qty').value)||1;
-  const inco=document.getElementById('q-inco').value;
-  const disc=parseFloat(document.getElementById('q-disc').value)||0;
+  if(!modelId) return null;
+  const item=state.inventory.find(x=>x.id===modelId);
+  if(!item) return null;
+  const qty     =parseInt(document.getElementById('q-qty').value)||1;
+  const inco    =document.getElementById('q-inco').value;
+  const disc    =parseFloat(document.getElementById('q-disc').value)||0;
+  const company =document.getElementById('q-company').value||'Valued Customer';
+  const address =document.getElementById('q-address').value||'';
+  const port    =document.getElementById('q-port').value;
+  const loading =document.getElementById('q-loading').value;
+  const refPi   =document.getElementById('q-ref-pi')?.value||'';
   const unitPrice=item.price*(1-disc/100);
-  const subtotal=unitPrice*qty;
-  const port=document.getElementById('q-port').value;
-  const freight=inco==='CIF'?(FREIGHT.CIF[port]||3000)*qty:0;
-  const total=subtotal+freight;
-  document.getElementById('quote-content').innerHTML=`
-    <div style="margin-bottom:16px;padding:12px;background:var(--bg2);border-radius:8px">
-      <div style="font-size:11px;color:var(--t3);margin-bottom:4px;text-transform:uppercase;letter-spacing:.05em">机型</div>
-      <div style="font-weight:700;font-size:14px">${item.model}</div>
-      <div style="font-size:12px;color:var(--t2)">${item.power} · ${item.condition}</div>
+  const subtotal =unitPrice*qty;
+  const portKey  =port.split(',')[0].trim();
+  const freight  =inco==='CIF'?(FREIGHT.CIF[portKey]||3000)*qty:0;
+  const total    =subtotal+freight;
+  return {item,qty,inco,disc,company,address,port,loading,refPi,unitPrice,subtotal,freight,total,deposit:total*0.3,balance:total*0.7};
+}
+
+function lh() {
+  return `<div class="doc-lh">
+    <div>
+      <div class="doc-co">HXH POWER EQUIPMENT CO., LTD.</div>
+      <div style="font-size:10.5px;color:#888;margin-top:2px">Used &amp; New Generator Sets · CIF/FOB Worldwide Export</div>
     </div>
-    <div class="qrow"><span style="color:var(--t2)">单价</span><span class="price">USD ${unitPrice.toLocaleString(undefined,{maximumFractionDigits:0})}</span></div>
-    ${disc>0?`<div class="qrow" style="color:var(--grn)"><span>折扣 ${disc}%</span><span>−USD ${(item.price*disc/100*qty).toLocaleString(undefined,{maximumFractionDigits:0})}</span></div>`:''}
-    <div class="qrow"><span style="color:var(--t2)">数量</span><span>${qty} 台</span></div>
-    ${freight>0?`<div class="qrow"><span style="color:var(--t2)">运费 (${inco} · ${port})</span><span class="price">USD ${freight.toLocaleString()}</span></div>`:''}
-    <div class="qtotal"><span>${inco} 总价</span><span style="color:var(--acc)">USD ${total.toLocaleString(undefined,{maximumFractionDigits:0})}</span></div>
-    <div style="font-size:11px;color:var(--t3);margin-top:14px;line-height:1.8">交货期：非洲 25–40天 / 中东 15–30天<br>付款：30% 定金 + 70% 提单前<br>有效期：7天</div>
-  `;
+    <div style="text-align:right;font-size:10.5px;color:#888;line-height:1.7">Tel: +86 XXX XXXX XXXX<br>Email: sales@hxhpower.com<br>Web: www.hxhpower.com</div>
+  </div>`;
+}
+
+function updateQuote() {
+  const v=calcValues();
+  if(!v){document.getElementById('quote-content').innerHTML='<div style="padding:24px;color:var(--t3);font-size:13px">Select a model to generate the document preview.</div>';return;}
+  ({quote:renderInitialQuote,pi:renderPI,deposit:renderDepositPI,ci:renderCI})[docType](v);
 }
 
 function generateQuote() {
-  const company=document.getElementById('q-company').value||'客户';
-  const modelId=parseInt(document.getElementById('q-model').value);
-  if(!modelId){alert('请先选择机型');return;}
-  const item=state.inventory.find(x=>x.id===modelId);
-  addActivity(`为 ${company} 生成报价：${item.model}`,'system');
-  saveState();render();alert(`报价已生成！\n可截图或复制报价预览发送给 ${company}`);
+  const v=calcValues();
+  if(!v){alert('Please select a model first.');return;}
+  const label={quote:'Quotation',pi:'Proforma Invoice',deposit:'Deposit PI',ci:'Commercial Invoice'};
+  addActivity(`${label[docType]} issued to ${v.company}: ${v.item.model}`,'system');
+  saveState();render();
+}
+
+function printDoc() {
+  const content=document.getElementById('quote-content').innerHTML;
+  if(!content||content.includes('Select a model')){alert('Please select a model first.');return;}
+  const w=window.open('','_blank');
+  w.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>HXH Power Document</title><style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:'Times New Roman',Georgia,serif;font-size:12.5px;padding:32px 40px;color:#1a1a1a;line-height:1.6}
+    .doc-lh{border-bottom:2px solid #c0392b;padding-bottom:10px;margin-bottom:16px;display:flex;justify-content:space-between;align-items:flex-end}
+    .doc-co{font-size:17px;font-weight:700;color:#c0392b}
+    .doc-h1{font-size:14px;font-weight:700;text-align:center;letter-spacing:2px;margin:14px 0;text-transform:uppercase;border-top:1px solid #ccc;border-bottom:1px solid #ccc;padding:7px 0}
+    .doc-parties{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin:14px 0;font-size:12px}
+    .dp-lbl{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:#999;border-bottom:1px solid #ddd;padding-bottom:3px;margin-bottom:6px}
+    .doc-tb{width:100%;border-collapse:collapse;margin:14px 0;font-size:12px}
+    .doc-tb th{background:#f0ede9;padding:6px 10px;text-align:left;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;border:1px solid #ccc}
+    .doc-tb td{padding:7px 10px;border:1px solid #ccc;vertical-align:top}
+    .doc-tb td.r{text-align:right;font-family:'Courier New',monospace}
+    .doc-totals{float:right;width:300px;font-size:12px;margin-top:4px}
+    .dtr{display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid #eee;font-size:12px}
+    .dtr.final{font-size:14px;font-weight:700;border-top:2px solid #333;border-bottom:none;padding-top:8px;margin-top:4px}
+    .doc-kv{display:grid;grid-template-columns:160px 1fr;gap:3px 0;font-size:11.5px}
+    .doc-kv span:nth-child(odd){font-weight:600}
+    .doc-bank{background:#f8f7f4;border:1px solid #e4e1db;padding:12px 14px;margin-top:10px;font-size:11.5px;line-height:1.8;page-break-inside:avoid}
+    .doc-notice{background:#fef3e2;border-left:3px solid #f59e0b;padding:8px 14px;font-size:11.5px;margin-bottom:14px}
+    .doc-cert{border:1px solid #ddd;padding:10px 14px;margin-top:6px;font-size:11.5px;font-style:italic;color:#555}
+    .doc-sign{border-top:1px solid #333;padding-top:4px;min-width:200px;text-align:center;font-size:11px}
+  </style></head><body>${content}</body></html>`);
+  w.document.close();
+  setTimeout(()=>w.print(),400);
+}
+
+function renderInitialQuote(v) {
+  const today=new Date();
+  document.getElementById('quote-content').innerHTML=`<div class="doc" style="padding:8px">
+    ${lh()}
+    <div class="doc-h1">QUOTATION</div>
+    <div style="font-size:12px;margin-bottom:14px">
+      <span style="font-weight:600">Quotation No.:</span> ${docNo('Q')}&nbsp;&nbsp;
+      <span style="font-weight:600">Date:</span> ${fmtDate(today)}&nbsp;&nbsp;
+      <span style="font-weight:600">Valid Until:</span> ${fmtDate(addDays(today,30))}
+    </div>
+    <div style="font-size:12px;margin-bottom:12px">
+      <span style="font-weight:600">To:</span> ${v.company}<br>
+      ${v.address?`<span style="color:#555">${v.address.replace(/\n/g,'<br>')}</span>`:''}
+    </div>
+    <p style="font-size:12.5px;margin-bottom:12px">Dear Sir/Madam,<br><br>Thank you for your enquiry. We are pleased to offer you the following:</p>
+    <table class="doc-tb">
+      <thead><tr><th style="width:26px">No.</th><th>Description of Goods</th><th style="width:52px;text-align:center">Qty</th><th style="width:112px;text-align:right">Unit Price</th><th style="width:118px;text-align:right">Amount (USD)</th></tr></thead>
+      <tbody><tr>
+        <td>1</td>
+        <td><strong>${v.item.model}</strong><br><span style="font-size:11px;color:#555">Rated Output: ${v.item.power}<br>Condition: ${v.item.condition}<br>HS Code: 8502.20 &nbsp;|&nbsp; Country of Origin: China</span></td>
+        <td style="text-align:center">${v.qty} set(s)</td>
+        <td class="r">${usd(v.unitPrice)}</td>
+        <td class="r">${usd(v.subtotal)}</td>
+      </tr></tbody>
+    </table>
+    <div class="doc-totals">
+      ${v.disc>0?`<div class="dtr"><span>Discount (${v.disc}%)</span><span>− ${usd(v.item.price*v.disc/100*v.qty)}</span></div>`:''}
+      <div class="dtr"><span>Subtotal</span><span>${usd(v.subtotal)}</span></div>
+      ${v.freight>0?`<div class="dtr"><span>Sea Freight + Insurance</span><span>${usd(v.freight)}</span></div>`:''}
+      <div class="dtr final"><span>${v.inco} TOTAL</span><span>${usd(v.total)}</span></div>
+    </div>
+    <div style="clear:both;margin-top:16px">
+      <div style="font-weight:700;font-size:10.5px;text-transform:uppercase;letter-spacing:.07em;color:#888;margin-bottom:8px">Terms &amp; Conditions</div>
+      <div class="doc-kv">
+        <span>Incoterms 2020:</span><span>${v.inco} ${v.port}</span>
+        <span>Port of Loading:</span><span>${v.loading}</span>
+        <span>Port of Destination:</span><span>${v.port}</span>
+        <span>Payment Terms:</span><span>T/T — 30% advance upon order confirmation; 70% balance before B/L release</span>
+        <span>Lead Time:</span><span>${leadTime(v.port)} working days from receipt of deposit</span>
+        <span>Validity:</span><span>30 days from date of issue</span>
+        <span>Currency:</span><span>United States Dollar (USD)</span>
+        <span>Inspection:</span><span>Available upon request prior to shipment</span>
+      </div>
+    </div>
+    <div style="font-size:11.5px;margin-top:14px;color:#555">We look forward to your valued confirmation. Please feel free to contact us for any queries.</div>
+    <div style="display:flex;justify-content:flex-end;margin-top:24px">
+      <div class="doc-sign"><br><br><span style="font-weight:600">Authorized Signature</span><br><span style="color:#888">HXH Power Equipment Co., Ltd.</span><br><span style="color:#888">${fmtDate(today)}</span></div>
+    </div>
+  </div>`;
+}
+
+function renderPI(v) {
+  const today=new Date();
+  document.getElementById('quote-content').innerHTML=`<div class="doc" style="padding:8px">
+    ${lh()}
+    <div class="doc-h1">PROFORMA INVOICE</div>
+    <div style="font-size:12px;margin-bottom:14px">
+      <span style="font-weight:600">PI No.:</span> ${docNo('PI')}&nbsp;&nbsp;
+      <span style="font-weight:600">Date:</span> ${fmtDate(today)}&nbsp;&nbsp;
+      <span style="font-weight:600">Valid:</span> 15 days from date of issue
+    </div>
+    <div class="doc-parties">
+      <div><div class="dp-lbl">Exporter / Seller</div>
+        <strong>HXH Power Equipment Co., Ltd.</strong><br>
+        <span style="color:#555;font-size:11.5px">[Your Company Address]<br>China<br>Tel: +86 XXX XXXX XXXX<br>Email: sales@hxhpower.com</span>
+      </div>
+      <div><div class="dp-lbl">Importer / Buyer</div>
+        <strong>${v.company}</strong><br>
+        <span style="color:#555;font-size:11.5px">${v.address?v.address.replace(/\n/g,'<br>'):'—'}</span>
+      </div>
+    </div>
+    <table class="doc-tb">
+      <thead><tr><th style="width:26px">No.</th><th>Description</th><th style="width:90px">HS Code</th><th style="width:45px;text-align:center">Qty</th><th style="width:112px;text-align:right">Unit Price (USD)</th><th style="width:118px;text-align:right">Amount (USD)</th></tr></thead>
+      <tbody><tr>
+        <td>1</td>
+        <td><strong>${v.item.model}</strong><br><span style="font-size:11px;color:#555">Output: ${v.item.power}<br>${v.item.condition}<br>Country of Origin: China</span></td>
+        <td style="font-family:monospace;font-size:11px">8502.20.0000</td>
+        <td style="text-align:center">${v.qty}</td>
+        <td class="r">${usd(v.unitPrice)}</td>
+        <td class="r">${usd(v.subtotal)}</td>
+      </tr></tbody>
+    </table>
+    <div class="doc-totals">
+      ${v.disc>0?`<div class="dtr"><span>Discount (${v.disc}%)</span><span>− ${usd(v.item.price*v.disc/100*v.qty)}</span></div>`:''}
+      <div class="dtr"><span>Subtotal (FOB)</span><span>${usd(v.subtotal)}</span></div>
+      ${v.freight>0?`<div class="dtr"><span>Sea Freight + Insurance</span><span>${usd(v.freight)}</span></div>`:''}
+      <div class="dtr final"><span>${v.inco} TOTAL</span><span>${usd(v.total)}</span></div>
+    </div>
+    <div style="clear:both;padding-top:14px">
+      <div class="doc-kv" style="font-size:12px">
+        <span>Incoterms 2020:</span><span>${v.inco} ${v.port}</span>
+        <span>Port of Loading:</span><span>${v.loading}</span>
+        <span>Port of Destination:</span><span>${v.port}</span>
+        <span>Country of Origin:</span><span>China (People's Republic of China)</span>
+        <span>Lead Time:</span><span>${leadTime(v.port)} working days from receipt of deposit</span>
+      </div>
+    </div>
+    <div style="margin-top:12px;font-size:12px"><strong>Payment Schedule:</strong>
+      <div style="background:#f8f7f4;border:1px solid #e4e1db;border-radius:6px;padding:10px 14px;margin-top:6px;font-size:11.5px;line-height:2">
+        &bull; <strong>30% Deposit: ${usd(v.deposit)}</strong> — due within 5 business days of PI receipt<br>
+        &bull; <strong>70% Balance: ${usd(v.balance)}</strong> — due upon presentation of B/L copy<br>
+        &bull; Total Contract Value: <strong>${usd(v.total)}</strong>
+      </div>
+    </div>
+    <div class="doc-bank">
+      <div style="font-weight:700;font-size:10.5px;text-transform:uppercase;letter-spacing:.07em;color:#888;margin-bottom:8px">Beneficiary Bank Details (T/T Wire Transfer)</div>
+      <div class="doc-kv">
+        <span>Bank Name:</span><span>[Your Bank Name]</span>
+        <span>Account Name:</span><span>HXH Power Equipment Co., Ltd.</span>
+        <span>Account No.:</span><span>[Your Account Number]</span>
+        <span>SWIFT / BIC:</span><span>[Your SWIFT Code]</span>
+        <span>Bank Address:</span><span>[Your Bank Branch Address], China</span>
+      </div>
+    </div>
+    <div style="display:flex;justify-content:flex-end;margin-top:24px">
+      <div class="doc-sign"><br><br><span style="font-weight:600">Authorized Signature &amp; Company Chop</span><br><span style="color:#888">HXH Power Equipment Co., Ltd.</span><br><span style="color:#888">${fmtDate(today)}</span></div>
+    </div>
+  </div>`;
+}
+
+function renderDepositPI(v) {
+  const today=new Date();
+  const serial=docNo('DPI');
+  document.getElementById('quote-content').innerHTML=`<div class="doc" style="padding:8px">
+    ${lh()}
+    <div class="doc-h1">PROFORMA INVOICE — DEPOSIT PAYMENT</div>
+    <div class="doc-notice">This invoice is for <strong>30% deposit payment only</strong>. Full contract details are in the main Proforma Invoice.</div>
+    <div style="font-size:12px;margin-bottom:14px">
+      <span style="font-weight:600">Deposit PI No.:</span> ${serial}&nbsp;&nbsp;
+      <span style="font-weight:600">Date:</span> ${fmtDate(today)}<br>
+      <span style="font-weight:600">Ref. PI No.:</span> ${v.refPi||'[Enter Ref. PI No. in config panel]'}&nbsp;&nbsp;
+      <span style="font-weight:600">Payment Due:</span> ${fmtDate(addDays(today,5))}
+    </div>
+    <div class="doc-parties">
+      <div><div class="dp-lbl">Beneficiary</div>
+        <strong>HXH Power Equipment Co., Ltd.</strong><br>
+        <span style="color:#555;font-size:11.5px">[Your Company Address]<br>China</span>
+      </div>
+      <div><div class="dp-lbl">Remitter / Buyer</div>
+        <strong>${v.company}</strong><br>
+        <span style="color:#555;font-size:11.5px">${v.address?v.address.replace(/\n/g,'<br>'):'—'}</span>
+      </div>
+    </div>
+    <table class="doc-tb">
+      <thead><tr><th>Description</th><th style="width:130px;text-align:right">Full Contract (USD)</th><th style="width:130px;text-align:right">Deposit 30% (USD)</th></tr></thead>
+      <tbody><tr>
+        <td><strong>${v.item.model}</strong> &times; ${v.qty} set(s)<br>
+          <span style="font-size:11px;color:#555">Output: ${v.item.power} &nbsp;|&nbsp; ${v.item.condition}<br>${v.inco} ${v.port}</span></td>
+        <td class="r">${usd(v.total)}</td>
+        <td class="r" style="background:#fffbea;font-weight:700">${usd(v.deposit)}</td>
+      </tr></tbody>
+    </table>
+    <div class="doc-totals" style="margin-top:8px">
+      <div class="dtr"><span>Full Contract Value</span><span>${usd(v.total)}</span></div>
+      <div class="dtr"><span>Balance Due Later (70%)</span><span>${usd(v.balance)}</span></div>
+      <div class="dtr final"><span>DEPOSIT DUE NOW (30%)</span><span>${usd(v.deposit)}</span></div>
+    </div>
+    <div class="doc-bank" style="clear:both;margin-top:16px">
+      <div style="font-weight:700;font-size:10.5px;text-transform:uppercase;letter-spacing:.07em;color:#888;margin-bottom:8px">Remittance Details (Wire Transfer / T/T)</div>
+      <div class="doc-kv">
+        <span>Bank Name:</span><span>[Your Bank Name]</span>
+        <span>Account Name:</span><span>HXH Power Equipment Co., Ltd.</span>
+        <span>Account No.:</span><span>[Your Account Number]</span>
+        <span>SWIFT / BIC:</span><span>[Your SWIFT Code]</span>
+        <span>Bank Address:</span><span>[Your Bank Branch Address], China</span>
+        <span>Amount to Remit:</span><span style="font-weight:700;color:#c0392b">${usd(v.deposit)}</span>
+        <span>Payment Reference:</span><span style="font-weight:600">${serial}</span>
+      </div>
+    </div>
+    <div style="font-size:11.5px;margin-top:12px;color:#555"><strong>Important:</strong> Please remit exactly <strong>${usd(v.deposit)}</strong> and quote reference <strong>${serial}</strong> in your wire advice. All bank charges outside China are for buyer's account (OUR/SHA).</div>
+    <div style="display:flex;justify-content:flex-end;margin-top:24px">
+      <div class="doc-sign"><br><br><span style="font-weight:600">Authorized Signature &amp; Company Chop</span><br><span style="color:#888">HXH Power Equipment Co., Ltd.</span><br><span style="color:#888">${fmtDate(today)}</span></div>
+    </div>
+  </div>`;
+}
+
+function renderCI(v) {
+  const today=new Date();
+  document.getElementById('quote-content').innerHTML=`<div class="doc" style="padding:8px">
+    ${lh()}
+    <div class="doc-h1">COMMERCIAL INVOICE</div>
+    <div style="font-size:12px;margin-bottom:14px">
+      <span style="font-weight:600">Invoice No.:</span> ${docNo('CI')}&nbsp;&nbsp;
+      <span style="font-weight:600">Date:</span> ${fmtDate(today)}<br>
+      <span style="font-weight:600">Ref. PI No.:</span> ${v.refPi||'—'}&nbsp;&nbsp;
+      <span style="font-weight:600">B/L No.:</span> [To be completed upon shipment]
+    </div>
+    <div class="doc-parties">
+      <div><div class="dp-lbl">Shipper / Exporter</div>
+        <strong>HXH Power Equipment Co., Ltd.</strong><br>
+        <span style="color:#555;font-size:11.5px">[Your Company Address]<br>China<br>Tel: +86 XXX XXXX XXXX</span>
+      </div>
+      <div><div class="dp-lbl">Consignee / Importer</div>
+        <strong>${v.company}</strong><br>
+        <span style="color:#555;font-size:11.5px">${v.address?v.address.replace(/\n/g,'<br>'):'—'}</span>
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:11.5px;background:#f8f7f4;border:1px solid #e4e1db;border-radius:6px;padding:10px 14px;margin-bottom:14px">
+      <div><span style="font-weight:600">Port of Loading:</span> ${v.loading}</div>
+      <div><span style="font-weight:600">Port of Discharge:</span> ${v.port}</div>
+      <div><span style="font-weight:600">Incoterms 2020:</span> ${v.inco} ${v.port}</div>
+      <div><span style="font-weight:600">Country of Origin:</span> China (P.R.C.)</div>
+      <div><span style="font-weight:600">Vessel / Voyage:</span> [To be completed]</div>
+      <div><span style="font-weight:600">ETD / ETA:</span> [To be completed]</div>
+    </div>
+    <table class="doc-tb">
+      <thead><tr><th style="width:26px">No.</th><th>Description of Goods</th><th style="width:90px">HS Code</th><th style="width:45px;text-align:center">Qty</th><th style="width:112px;text-align:right">Unit Price (USD)</th><th style="width:118px;text-align:right">Total (USD)</th></tr></thead>
+      <tbody><tr>
+        <td>1</td>
+        <td><strong>${v.item.model}</strong><br><span style="font-size:11px;color:#555">Diesel Generator Set, ${v.item.power}<br>${v.item.condition}<br>Serial No.: [To be completed]<br>Country of Origin: China (People's Republic of China)</span></td>
+        <td style="font-family:monospace;font-size:11px">8502.20.0000</td>
+        <td style="text-align:center">${v.qty}</td>
+        <td class="r">${usd(v.unitPrice)}</td>
+        <td class="r">${usd(v.subtotal)}</td>
+      </tr></tbody>
+    </table>
+    <div class="doc-totals">
+      ${v.disc>0?`<div class="dtr"><span>Discount (${v.disc}%)</span><span>− ${usd(v.item.price*v.disc/100*v.qty)}</span></div>`:''}
+      <div class="dtr"><span>FOB Value</span><span>${usd(v.subtotal)}</span></div>
+      ${v.freight>0?`<div class="dtr"><span>Sea Freight + Insurance</span><span>${usd(v.freight)}</span></div>`:''}
+      <div class="dtr final"><span>${v.inco} TOTAL VALUE</span><span>${usd(v.total)}</span></div>
+    </div>
+    <div style="clear:both;margin-top:16px;font-size:12px"><strong>Declaration / Certification:</strong>
+      <div class="doc-cert">I hereby certify that this invoice is true and correct and that the goods described herein are the product of China, and that their country of origin is China (People's Republic of China), in accordance with the applicable rules of origin.</div>
+    </div>
+    <div style="display:flex;justify-content:space-between;margin-top:24px;align-items:flex-end">
+      <div style="font-size:11px;color:#888">This is a computer-generated commercial invoice.<br>Page 1 of 1</div>
+      <div class="doc-sign"><br><br><span style="font-weight:600">Authorized Signature &amp; Company Chop</span><br><span style="color:#888">HXH Power Equipment Co., Ltd.</span><br><span style="color:#888">${fmtDate(today)}</span></div>
+    </div>
+  </div>`;
 }
 
 function openAddLead() {
