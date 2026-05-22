@@ -140,6 +140,13 @@ label{font-size:12px;font-weight:500;color:var(--t2);margin-bottom:4px;display:b
 .doc-cert{border:1px solid #ddd;border-radius:6px;padding:10px 14px;margin-top:6px;font-size:11.5px;font-style:italic;color:#555}
 .doc-sign{border-top:1px solid #333;padding-top:4px;min-width:200px;text-align:center;font-size:11px}
 
+/* Inventory image thumbnail */
+.inv-thumb{width:52px;height:40px;object-fit:cover;border-radius:4px;border:1px solid var(--bdr);cursor:pointer;display:block}
+.inv-thumb-ph{width:52px;height:40px;background:var(--bg3);border-radius:4px;border:1px solid var(--bdr);display:flex;align-items:center;justify-content:center;color:var(--t3);font-size:18px;cursor:default}
+/* Image preview modal */
+.img-preview-overlay{position:fixed;inset:0;background:rgba(0,0,0,.8);display:flex;align-items:center;justify-content:center;z-index:500;cursor:pointer}
+.img-preview-overlay img{max-width:90vw;max-height:88vh;border-radius:8px;box-shadow:0 8px 32px rgba(0,0,0,.5)}
+
 @media(max-width:768px){
   .metrics{grid-template-columns:repeat(2,1fr)}
   .fgrid{grid-template-columns:1fr}
@@ -236,13 +243,41 @@ label{font-size:12px;font-weight:500;color:var(--t2);margin-bottom:4px;display:b
     <div id="sec-inventory" class="section">
       <div class="card">
         <div class="ch">
-          <span class="ct">库存状态</span>
+          <span class="ct">库存状态 <span id="inv-count" style="font-size:12px;font-weight:400;color:var(--t3)"></span></span>
           <button class="btn btn-primary btn-sm" onclick="openAddStock()"><i class="ti ti-plus"></i> 新增库存</button>
         </div>
-        <table>
-          <thead><tr><th>机器ID</th><th>型号</th><th>功率 / 状况</th><th>年份 / 运行时</th><th>尺寸 L×W×H (m)</th><th>参考价 (USD)</th><th>状态</th><th>操作</th></tr></thead>
+        <!-- 筛选栏 -->
+        <div class="tb" style="gap:8px;flex-wrap:wrap">
+          <input class="si" type="text" id="inv-search" placeholder="搜索机器ID / 型号..." oninput="filterInventory()" style="min-width:160px;max-width:220px">
+          <select id="inv-f-status" onchange="filterInventory()" style="width:auto">
+            <option value="">全部状态</option>
+            <option>在库</option><option>预留</option><option>已售</option><option>维修中</option>
+          </select>
+          <select id="inv-f-brand" onchange="filterInventory()" style="width:auto">
+            <option value="">全部品牌</option>
+            <option>Cummins</option><option>Caterpillar</option><option>MTU</option><option>Perkins</option>
+          </select>
+          <select id="inv-f-warehouse" onchange="filterInventory()" style="width:auto">
+            <option value="">全部仓库</option>
+            <option>东莞仓</option><option>美国仓</option><option>东南亚仓</option><option>海外仓</option>
+          </select>
+        </div>
+        <div style="overflow-x:auto">
+        <table style="min-width:900px">
+          <thead><tr>
+            <th style="width:60px">图片</th>
+            <th>机器ID</th>
+            <th>型号 / 品牌</th>
+            <th>功率 / 电压 / 频率</th>
+            <th>年份 / 运行时</th>
+            <th>仓库</th>
+            <th>参考价 (USD)</th>
+            <th>状态</th>
+            <th>操作</th>
+          </tr></thead>
           <tbody id="inv-table"></tbody>
         </table>
+        </div>
       </div>
     </div>
 
@@ -359,15 +394,15 @@ let state = {
     {id:3,company:'Technopower',country:'Saudi Arabia',type:'项目客户',stage:'初次联系',need:'未知',nextFollowup:'2026-05-25',notes:'',source:'WA主动开发',created:'2026-05-22'},
   ],
   inventory: [
-    {id:1,machineId:'HXH-2026-001',model:'Cummins NTA855-G4',brand:'Cummins',power:'317–400kW',condition:'Used/Refurbished',status:'在库',price:68000,year:'2018',hours:'12000',length:'3.2',width:'1.5',height:'1.8',weight:'3200'},
-    {id:2,machineId:'HXH-2026-002',model:'Cummins KTA19-G2',brand:'Cummins',power:'336–511kW',condition:'Used/Refurbished',status:'在库',price:85000,year:'2017',hours:'15000',length:'3.6',width:'1.6',height:'2.0',weight:'4200'},
-    {id:3,machineId:'HXH-2026-003',model:'Cummins KTA38-G2',brand:'Cummins',power:'660–1200kW',condition:'Used/Refurbished',status:'在库',price:145000,year:'2016',hours:'18500',length:'4.1',width:'1.8',height:'2.1',weight:'5800'},
-    {id:4,machineId:'HXH-2026-004',model:'Cummins KTA50-G5',brand:'Cummins',power:'900–1340kW',condition:'Used/Refurbished',status:'在库',price:185000,year:'2019',hours:'9800',length:'4.8',width:'1.9',height:'2.2',weight:'7500'},
-    {id:5,machineId:'HXH-2026-005',model:'Cummins QSK60-G4',brand:'Cummins',power:'1500–1915kW',condition:'Used/Refurbished',status:'在库',price:265000,year:'2019',hours:'9500',length:'5.6',width:'2.1',height:'2.4',weight:'12000'},
-    {id:6,machineId:'HXH-2026-006',model:'Cummins QSK60-C Series',brand:'Cummins',power:'1700–2200kW',condition:'Used/Refurbished',status:'预留',price:310000,year:'2020',hours:'7200',length:'5.8',width:'2.1',height:'2.5',weight:'13500'},
-    {id:7,machineId:'HXH-2026-007',model:'Caterpillar 3512B',brand:'Caterpillar',power:'1102–1865kW',condition:'Used/Refurbished',status:'在库',price:245000,year:'2017',hours:'14000',length:'5.2',width:'2.0',height:'2.3',weight:'10500'},
-    {id:8,machineId:'HXH-2026-008',model:'MTU 12V 4000-S81',brand:'MTU',power:'1678kW',condition:'Used/Refurbished',status:'维修中',price:290000,year:'2018',hours:'16000',length:'5.0',width:'1.9',height:'2.3',weight:'11000'},
-    {id:9,machineId:'HXH-2026-009',model:'MTU 16V 4000-S81',brand:'MTU',power:'1800–2440kW',condition:'Used/Refurbished',status:'在库',price:380000,year:'2020',hours:'7200',length:'5.8',width:'2.1',height:'2.5',weight:'14000'},
+    {id:1,machineId:'HXH-2026-001',model:'Cummins NTA855-G4',brand:'Cummins',power:'317–400kW',condition:'Used/Refurbished',status:'在库',price:68000,year:'2018',hours:'12000',length:'3.2',width:'1.5',height:'1.8',weight:'3200',voltage:'400V',frequency:'50Hz',warehouse:'东莞仓',image:''},
+    {id:2,machineId:'HXH-2026-002',model:'Cummins KTA19-G2',brand:'Cummins',power:'336–511kW',condition:'Used/Refurbished',status:'在库',price:85000,year:'2017',hours:'15000',length:'3.6',width:'1.6',height:'2.0',weight:'4200',voltage:'400V',frequency:'50Hz',warehouse:'东莞仓',image:''},
+    {id:3,machineId:'HXH-2026-003',model:'Cummins KTA38-G2',brand:'Cummins',power:'660–1200kW',condition:'Used/Refurbished',status:'在库',price:145000,year:'2016',hours:'18500',length:'4.1',width:'1.8',height:'2.1',weight:'5800',voltage:'400V',frequency:'50Hz',warehouse:'东莞仓',image:''},
+    {id:4,machineId:'HXH-2026-004',model:'Cummins KTA50-G5',brand:'Cummins',power:'900–1340kW',condition:'Used/Refurbished',status:'在库',price:185000,year:'2019',hours:'9800',length:'4.8',width:'1.9',height:'2.2',weight:'7500',voltage:'480V',frequency:'60Hz',warehouse:'美国仓',image:''},
+    {id:5,machineId:'HXH-2026-005',model:'Cummins QSK60-G4',brand:'Cummins',power:'1500–1915kW',condition:'Used/Refurbished',status:'在库',price:265000,year:'2019',hours:'9500',length:'5.6',width:'2.1',height:'2.4',weight:'12000',voltage:'400V',frequency:'50Hz',warehouse:'东莞仓',image:''},
+    {id:6,machineId:'HXH-2026-006',model:'Cummins QSK60-C Series',brand:'Cummins',power:'1700–2200kW',condition:'Used/Refurbished',status:'预留',price:310000,year:'2020',hours:'7200',length:'5.8',width:'2.1',height:'2.5',weight:'13500',voltage:'400V',frequency:'50/60Hz',warehouse:'东莞仓',image:''},
+    {id:7,machineId:'HXH-2026-007',model:'Caterpillar 3512B',brand:'Caterpillar',power:'1102–1865kW',condition:'Used/Refurbished',status:'在库',price:245000,year:'2017',hours:'14000',length:'5.2',width:'2.0',height:'2.3',weight:'10500',voltage:'440V',frequency:'60Hz',warehouse:'东南亚仓',image:''},
+    {id:8,machineId:'HXH-2026-008',model:'MTU 12V 4000-S81',brand:'MTU',power:'1678kW',condition:'Used/Refurbished',status:'维修中',price:290000,year:'2018',hours:'16000',length:'5.0',width:'1.9',height:'2.3',weight:'11000',voltage:'400V',frequency:'50Hz',warehouse:'东莞仓',image:''},
+    {id:9,machineId:'HXH-2026-009',model:'MTU 16V 4000-S81',brand:'MTU',power:'1800–2440kW',condition:'Used/Refurbished',status:'在库',price:380000,year:'2020',hours:'7200',length:'5.8',width:'2.1',height:'2.5',weight:'14000',voltage:'400V',frequency:'50Hz',warehouse:'东莞仓',image:''},
   ],
   activity: [
     {time:'今天 20:36',text:'Titanium Power Solutions 回复："Where are you based?"',type:'reply'},
@@ -408,7 +443,8 @@ function migrateState(s) {
           condition: item.condition,
           status: item.status==='out'?'已售':'在库',
           price: item.price,
-          year:'', hours:'', length:'', width:'', height:'', weight:''
+          year:'', hours:'', length:'', width:'', height:'', weight:'',
+          voltage:'', frequency:'', warehouse:'', image:''
         });
       }
     });
@@ -506,12 +542,21 @@ function renderLeadsTable(leads) {
   `).join('');
 }
 
-function renderInventory() {
-  if(!state.inventory.length){
-    document.getElementById('inv-table').innerHTML='<tr><td colspan="8" class="empty">暂无库存记录</td></tr>';return;
+function renderInventory(list) {
+  const rows = list || state.inventory;
+  const el = document.getElementById('inv-table');
+  const cnt = document.getElementById('inv-count');
+  if(cnt) cnt.textContent = `(${rows.length} 台)`;
+  if(!rows.length){
+    el.innerHTML='<tr><td colspan="9" class="empty">暂无符合条件的库存</td></tr>';return;
   }
-  document.getElementById('inv-table').innerHTML=state.inventory.map(i=>`
+  el.innerHTML=rows.map(i=>`
     <tr>
+      <td>
+        ${i.image
+          ? `<img class="inv-thumb" src="${i.image}" onclick="previewImage('${i.machineId}')" title="点击查看大图">`
+          : `<div class="inv-thumb-ph" title="无图片"><i class="ti ti-camera" style="font-size:16px"></i></div>`}
+      </td>
       <td><span style="font-family:monospace;font-size:12px;font-weight:600;color:var(--acc)">${i.machineId}</span></td>
       <td>
         <div style="font-weight:600">${i.model}</div>
@@ -519,15 +564,13 @@ function renderInventory() {
       </td>
       <td>
         <div>${i.power}</div>
+        <div class="td-sub">${[i.voltage,i.frequency].filter(Boolean).join(' / ')||'—'}</div>
       </td>
       <td>
         <div>${i.year ? i.year+'年' : '—'}</div>
         <div class="td-sub">${i.hours ? Number(i.hours).toLocaleString()+'h' : '—'}</div>
       </td>
-      <td style="font-size:12px;color:var(--t2)">
-        ${(i.length&&i.width&&i.height) ? `${i.length}×${i.width}×${i.height}` : '—'}
-        ${i.weight ? `<div class="td-sub">${Number(i.weight).toLocaleString()} kg</div>` : ''}
-      </td>
+      <td style="font-size:12px">${i.warehouse||'—'}</td>
       <td class="price">$${i.price.toLocaleString()}</td>
       <td>
         <select onchange="updateMachineStatus(${i.id},this.value)"
@@ -538,6 +581,31 @@ function renderInventory() {
       <td><button class="btn btn-sm btn-ghost" onclick="editStock(${i.id})" title="编辑"><i class="ti ti-edit"></i></button></td>
     </tr>
   `).join('');
+}
+
+function filterInventory() {
+  const q=(document.getElementById('inv-search')?.value||'').toLowerCase();
+  const fs=document.getElementById('inv-f-status')?.value||'';
+  const fb=document.getElementById('inv-f-brand')?.value||'';
+  const fw=document.getElementById('inv-f-warehouse')?.value||'';
+  const rows=state.inventory.filter(i=>{
+    const mq=!q||(i.machineId.toLowerCase().includes(q)||i.model.toLowerCase().includes(q)||i.brand.toLowerCase().includes(q));
+    const ms=!fs||i.status===fs;
+    const mb=!fb||i.brand===fb;
+    const mw=!fw||i.warehouse===fw;
+    return mq&&ms&&mb&&mw;
+  });
+  renderInventory(rows);
+}
+
+function previewImage(machineId) {
+  const i=state.inventory.find(x=>x.machineId===machineId);
+  if(!i||!i.image)return;
+  const overlay=document.createElement('div');
+  overlay.className='img-preview-overlay';
+  overlay.innerHTML=`<img src="${i.image}" alt="${i.model}">`;
+  overlay.onclick=()=>overlay.remove();
+  document.body.appendChild(overlay);
 }
 
 function renderActivity() {
@@ -1006,19 +1074,63 @@ function saveEditLead(id) {
   addActivity(`更新线索：${l.company}`,'system');saveState();closeModal();render();
 }
 
+// ── 图片压缩上传 ─────────────────────────────────────────────
+let _pendingImage = null; // 临时存待保存的图片base64
+
+function handleImageUpload(inputEl, previewId) {
+  const file = inputEl.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    const img = new Image();
+    img.onload = function() {
+      const MAX = 900;
+      const scale = Math.min(1, MAX / Math.max(img.width, img.height));
+      const canvas = document.createElement('canvas');
+      canvas.width = Math.round(img.width * scale);
+      canvas.height = Math.round(img.height * scale);
+      canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+      _pendingImage = canvas.toDataURL('image/jpeg', 0.72);
+      const prev = document.getElementById(previewId);
+      if (prev) { prev.src = _pendingImage; prev.style.display = 'block'; }
+    };
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+function warehouseOptions(selected='') {
+  const opts=['东莞仓','美国仓','东南亚仓','海外仓'];
+  const isCustom = selected && !opts.includes(selected);
+  return `
+    ${opts.map(o=>`<option${selected===o?' selected':''}>${o}</option>`).join('')}
+    <option value="__custom"${isCustom?' selected':''}>自定义...</option>`;
+}
+
+function toggleWarehouse(sel, inputId) {
+  const el = document.getElementById(inputId);
+  if (el) el.style.display = sel.value === '__custom' ? '' : 'none';
+}
+
+function getWarehouse(selId, inputId) {
+  const sel = document.getElementById(selId);
+  if (!sel) return '';
+  if (sel.value === '__custom') return (document.getElementById(inputId)?.value||'').trim();
+  return sel.value;
+}
+
 function openAddStock() {
   const autoId='HXH-'+new Date().getFullYear()+'-'+String(state.nextMachineSeq||1).padStart(3,'0');
+  _pendingImage = null;
   document.getElementById('modal-container').innerHTML=`
     <div class="moverlay" onclick="if(event.target===this)closeModal()">
-      <div class="modal" style="width:580px">
+      <div class="modal" style="width:600px">
         <div class="mhdr"><span class="mt">新增库存（一机一档）</span><button class="mx" onclick="closeModal()">×</button></div>
         <div class="fcol">
           <div class="fgrid">
             <div class="fg"><label>机器ID（自动生成，可覆盖）</label><input type="text" id="ns-mid" value="${autoId}" placeholder="HXH-2026-001"></div>
             <div class="fg"><label>状态</label>
-              <select id="ns-status">
-                <option>在库</option><option>预留</option><option>已售</option><option>维修中</option>
-              </select>
+              <select id="ns-status"><option>在库</option><option>预留</option><option>已售</option><option>维修中</option></select>
             </div>
           </div>
           <div class="fgrid">
@@ -1029,19 +1141,38 @@ function openAddStock() {
             <div class="fg"><label>功率</label><input type="text" id="ns-power" placeholder="660–1200kW"></div>
             <div class="fg"><label>状况</label><select id="ns-cond"><option>Brand New</option><option>Used/Refurbished</option><option>Used/As-is</option><option>Fully Rebuilt</option></select></div>
           </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px">
+            <div class="fg"><label>电压</label>
+              <select id="ns-voltage"><option>380V</option><option>400V</option><option>440V</option><option>480V</option><option>自定义</option></select>
+            </div>
+            <div class="fg"><label>频率</label>
+              <select id="ns-freq"><option>50Hz</option><option>60Hz</option><option>50/60Hz</option></select>
+            </div>
+            <div class="fg"><label>参考价 (USD)</label><input type="number" id="ns-price" placeholder="145000"></div>
+          </div>
           <div class="fgrid">
             <div class="fg"><label>出厂年份</label><input type="number" id="ns-year" placeholder="2018" min="1990" max="2030"></div>
             <div class="fg"><label>运行小时数 (h)</label><input type="number" id="ns-hours" placeholder="12000" min="0"></div>
           </div>
-          <div style="font-size:12px;font-weight:600;color:var(--t2);margin-top:4px">外形尺寸 (m)</div>
-          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px">
+          <div style="font-size:12px;font-weight:600;color:var(--t2);margin-top:4px">外形尺寸 (m) &amp; 重量</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:10px">
             <div class="fg"><label>长 (L)</label><input type="number" id="ns-len" placeholder="4.1" step="0.01"></div>
             <div class="fg"><label>宽 (W)</label><input type="number" id="ns-wid" placeholder="1.8" step="0.01"></div>
             <div class="fg"><label>高 (H)</label><input type="number" id="ns-hei" placeholder="2.1" step="0.01"></div>
+            <div class="fg"><label>净重 (kg)</label><input type="number" id="ns-weight" placeholder="5800"></div>
           </div>
           <div class="fgrid">
-            <div class="fg"><label>净重 (kg)</label><input type="number" id="ns-weight" placeholder="5800"></div>
-            <div class="fg"><label>参考价 (USD)</label><input type="number" id="ns-price" placeholder="145000"></div>
+            <div class="fg"><label>所在仓库</label>
+              <select id="ns-warehouse" onchange="toggleWarehouse(this,'ns-warehouse-custom')">
+                ${warehouseOptions()}
+              </select>
+              <input type="text" id="ns-warehouse-custom" placeholder="填写仓库名称" style="display:none;margin-top:6px">
+            </div>
+            <div class="fg"><label>机器图片</label>
+              <input type="file" id="ns-img-file" accept="image/*" style="font-size:12px;padding:4px"
+                onchange="handleImageUpload(this,'ns-img-preview')">
+              <img id="ns-img-preview" style="display:none;margin-top:6px;max-height:80px;border-radius:4px;border:1px solid var(--bdr)">
+            </div>
           </div>
         </div>
         <div class="mfoot">
@@ -1054,9 +1185,11 @@ function openAddStock() {
 
 function editStock(id) {
   const i=state.inventory.find(x=>x.id===id);if(!i)return;
+  _pendingImage=null;
+  const isCustomWh=i.warehouse&&!['东莞仓','美国仓','东南亚仓','海外仓'].includes(i.warehouse);
   document.getElementById('modal-container').innerHTML=`
     <div class="moverlay" onclick="if(event.target===this)closeModal()">
-      <div class="modal" style="width:580px">
+      <div class="modal" style="width:600px">
         <div class="mhdr"><span class="mt">编辑 — ${i.machineId}</span><button class="mx" onclick="closeModal()">×</button></div>
         <div class="fcol">
           <div class="fgrid">
@@ -1083,23 +1216,51 @@ function editStock(id) {
               </select>
             </div>
           </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px">
+            <div class="fg"><label>电压</label>
+              <select id="es-voltage">
+                ${['380V','400V','440V','480V','自定义'].map(v=>`<option${i.voltage===v?' selected':''}>${v}</option>`).join('')}
+              </select>
+            </div>
+            <div class="fg"><label>频率</label>
+              <select id="es-freq">
+                ${['50Hz','60Hz','50/60Hz'].map(f=>`<option${i.frequency===f?' selected':''}>${f}</option>`).join('')}
+              </select>
+            </div>
+            <div class="fg"><label>参考价 (USD)</label><input type="number" id="es-price" value="${i.price}"></div>
+          </div>
           <div class="fgrid">
             <div class="fg"><label>出厂年份</label><input type="number" id="es-year" value="${i.year||''}" placeholder="2018"></div>
             <div class="fg"><label>运行小时数 (h)</label><input type="number" id="es-hours" value="${i.hours||''}" placeholder="12000"></div>
           </div>
-          <div style="font-size:12px;font-weight:600;color:var(--t2);margin-top:4px">外形尺寸 (m)</div>
-          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px">
+          <div style="font-size:12px;font-weight:600;color:var(--t2);margin-top:4px">外形尺寸 (m) &amp; 重量</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:10px">
             <div class="fg"><label>长 (L)</label><input type="number" id="es-len" value="${i.length||''}" step="0.01"></div>
             <div class="fg"><label>宽 (W)</label><input type="number" id="es-wid" value="${i.width||''}" step="0.01"></div>
             <div class="fg"><label>高 (H)</label><input type="number" id="es-hei" value="${i.height||''}" step="0.01"></div>
+            <div class="fg"><label>净重 (kg)</label><input type="number" id="es-weight" value="${i.weight||''}"></div>
           </div>
           <div class="fgrid">
-            <div class="fg"><label>净重 (kg)</label><input type="number" id="es-weight" value="${i.weight||''}"></div>
-            <div class="fg"><label>参考价 (USD)</label><input type="number" id="es-price" value="${i.price}"></div>
+            <div class="fg"><label>所在仓库</label>
+              <select id="es-warehouse" onchange="toggleWarehouse(this,'es-warehouse-custom')">
+                ${warehouseOptions(i.warehouse||'')}
+              </select>
+              <input type="text" id="es-warehouse-custom" placeholder="填写仓库名称"
+                value="${isCustomWh?i.warehouse:''}"
+                style="display:${isCustomWh?'':'none'};margin-top:6px">
+            </div>
+            <div class="fg"><label>机器图片</label>
+              ${i.image?`<img src="${i.image}" style="max-height:60px;border-radius:4px;border:1px solid var(--bdr);margin-bottom:6px;display:block">
+              <small style="color:var(--t3)">上传新图片将覆盖旧图</small><br>`:''}
+              <input type="file" id="es-img-file" accept="image/*" style="font-size:12px;padding:4px;margin-top:4px"
+                onchange="handleImageUpload(this,'es-img-preview')">
+              <img id="es-img-preview" style="display:none;margin-top:6px;max-height:60px;border-radius:4px;border:1px solid var(--bdr)">
+            </div>
           </div>
         </div>
         <div class="mfoot">
           <button class="btn" onclick="closeModal()">取消</button>
+          <button class="btn btn-danger btn-sm btn-ghost" onclick="deleteStock(${id})" style="margin-right:auto">删除</button>
           <button class="btn btn-primary" onclick="saveEditStock(${id})">保存</button>
         </div>
       </div>
@@ -1110,11 +1271,8 @@ function saveStock() {
   const m=document.getElementById('ns-model').value.trim();
   if(!m){alert('型号为必填');return;}
   const mid=document.getElementById('ns-mid').value.trim()||genMachineId();
-  // 如果用户没有覆盖ID，自增序号
-  if(mid===`HXH-${new Date().getFullYear()}-${String((state.nextMachineSeq||1)-0).padStart(3,'0')}`){
-    // auto ID was used, already incremented in openAddStock preview; ensure seq is bumped
-    state.nextMachineSeq=(state.nextMachineSeq||1)+1;
-  }
+  // 自增序号（如果用了自动ID）
+  state.nextMachineSeq=(state.nextMachineSeq||1)+1;
   state.inventory.push({
     id:state.nextId++,
     machineId:mid,
@@ -1129,8 +1287,13 @@ function saveStock() {
     length:document.getElementById('ns-len').value,
     width:document.getElementById('ns-wid').value,
     height:document.getElementById('ns-hei').value,
-    weight:document.getElementById('ns-weight').value
+    weight:document.getElementById('ns-weight').value,
+    voltage:document.getElementById('ns-voltage').value,
+    frequency:document.getElementById('ns-freq').value,
+    warehouse:getWarehouse('ns-warehouse','ns-warehouse-custom'),
+    image:_pendingImage||''
   });
+  _pendingImage=null;
   addActivity(`新增库存：${mid} ${m}`,'system');saveState();closeModal();render();
 }
 
@@ -1149,7 +1312,20 @@ function saveEditStock(id) {
   i.width=document.getElementById('es-wid').value;
   i.height=document.getElementById('es-hei').value;
   i.weight=document.getElementById('es-weight').value;
+  i.voltage=document.getElementById('es-voltage').value;
+  i.frequency=document.getElementById('es-freq').value;
+  i.warehouse=getWarehouse('es-warehouse','es-warehouse-custom');
+  if(_pendingImage) i.image=_pendingImage;
+  _pendingImage=null;
   addActivity(`更新库存：${i.machineId} ${i.model}`,'system');
+  saveState();closeModal();render();
+}
+
+function deleteStock(id) {
+  const i=state.inventory.find(x=>x.id===id);if(!i)return;
+  if(!confirm(`确认删除 ${i.machineId} ${i.model}？此操作不可撤销。`))return;
+  state.inventory=state.inventory.filter(x=>x.id!==id);
+  addActivity(`删除库存：${i.machineId} ${i.model}`,'system');
   saveState();closeModal();render();
 }
 
