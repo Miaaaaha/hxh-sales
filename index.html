@@ -1,194 +1,301 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HXH Power 销售系统</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.34.0/dist/tabler-icons.min.css">
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+<style>
+:root{
+  --bg:#fff;--bg2:#f8f7f4;--bg3:#f0ede9;
+  --bdr:#e4e1db;--bdr2:#ccc8c1;
+  --t1:#1c1b18;--t2:#6b6866;--t3:#aaa8a3;
+  --acc:#c0392b;--acc2:#a93226;
+  --grn:#0f6e56;--org:#854f0b;--blu:#185fa5;
+  --r:8px;--rl:12px;
+  --sh:0 1px 3px rgba(0,0,0,.07),0 1px 2px rgba(0,0,0,.04);
+  --sh2:0 8px 24px rgba(0,0,0,.13),0 2px 6px rgba(0,0,0,.06);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;background:var(--bg2);color:var(--t1);font-size:14px;line-height:1.5;min-height:100vh}
 
-<h2 class="sr-only">HXH Power 销售工作流系统 — 线索跟进、库存管理、快速报价</h2>
+.hdr{background:#fff;border-bottom:1px solid var(--bdr);padding:0 24px;display:flex;align-items:center;justify-content:space-between;height:54px;position:sticky;top:0;z-index:50}
+.hdr-logo{display:flex;align-items:center;gap:10px;font-weight:700;font-size:15px;color:var(--t1)}
+.logo-icon{width:32px;height:32px;background:var(--acc);border-radius:8px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:16px}
+.sync-badge{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--t2);background:var(--bg2);padding:4px 12px;border-radius:20px;border:1px solid var(--bdr)}
+.sdot{width:6px;height:6px;border-radius:50%;background:var(--t3);flex-shrink:0}
+.sdot.on{background:#22c55e}.sdot.sync{background:#f59e0b}
 
-<!-- 密码保护层 -->
-<div id="pw-overlay" style="position:fixed;inset:0;background:#f5f5f5;display:flex;align-items:center;justify-content:center;z-index:9999;font-family:system-ui,-apple-system,sans-serif">
-  <div style="background:#fff;border-radius:12px;padding:40px 48px;box-shadow:0 4px 24px rgba(0,0,0,0.12);width:360px;max-width:90vw;text-align:center">
-    <div style="font-size:32px;margin-bottom:8px">🔒</div>
-    <h1 style="font-size:18px;font-weight:600;color:#1a1a1a;margin-bottom:4px">HXH Power 销售系统</h1>
-    <p style="font-size:13px;color:#888;margin-bottom:24px">请输入访问密码</p>
+.nav{background:#fff;border-bottom:1px solid var(--bdr);padding:0 24px;display:flex}
+.ntab{padding:11px 16px;font-size:13px;font-weight:500;border:none;background:none;cursor:pointer;color:var(--t2);border-bottom:2px solid transparent;margin-bottom:-1px;display:inline-flex;align-items:center;gap:6px;transition:color .15s}
+.ntab:hover{color:var(--t1)}.ntab.active{color:var(--acc);border-bottom-color:var(--acc)}
+.ntab i{font-size:15px}
+
+.main{max-width:1280px;margin:0 auto;padding:24px}
+.section{display:none}.section.active{display:block}
+
+.metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:20px}
+.metric{background:#fff;border:1px solid var(--bdr);border-radius:var(--rl);padding:16px 20px;box-shadow:var(--sh)}
+.mv{font-size:26px;font-weight:700;line-height:1;margin-bottom:5px}
+.ml{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--t3)}
+
+.card{background:#fff;border:1px solid var(--bdr);border-radius:var(--rl);box-shadow:var(--sh);margin-bottom:16px;overflow:hidden}
+.card-body{padding:20px 24px}
+.ch{display:flex;align-items:center;justify-content:space-between;padding:14px 24px;border-bottom:1px solid var(--bdr)}
+.ct{font-size:14px;font-weight:600;color:var(--t1)}
+
+.tb{display:flex;gap:10px;align-items:center;padding:14px 24px;border-bottom:1px solid var(--bdr);flex-wrap:wrap}
+.si{flex:1;min-width:180px}
+
+table{width:100%;border-collapse:collapse;font-size:13px}
+thead th{text-align:left;padding:9px 14px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--t3);background:var(--bg2);border-bottom:1px solid var(--bdr)}
+tbody tr{transition:background .1s}
+tbody tr:hover td{background:var(--bg2)}
+tbody td{padding:11px 14px;border-bottom:1px solid var(--bdr);vertical-align:middle}
+tbody tr:last-child td{border-bottom:none}
+.td-sub{font-size:11px;color:var(--t2);margin-top:2px}
+
+.badge{display:inline-flex;align-items:center;padding:2px 9px;border-radius:20px;font-size:11px;font-weight:600;white-space:nowrap}
+.badge-new{background:#e6f5d8;color:#2d6008}
+.badge-warm{background:#fef3e2;color:#854f0b}
+.badge-hot{background:#fde8e8;color:#a32d2d}
+.badge-won{background:#e0f5ee;color:#0d6149}
+.badge-lost{background:#f0ede8;color:#5f5e5a}
+.badge-dealer{background:#eeecfe;color:#3c3489}
+.badge-project{background:#e6f0fb;color:#185fa5}
+.badge-instock{background:#e6f5d8;color:#2d6008}
+.badge-low{background:#fef3e2;color:#854f0b}
+.badge-out{background:#fde8e8;color:#a32d2d}
+
+.btn{display:inline-flex;align-items:center;gap:5px;padding:7px 14px;font-size:13px;font-weight:500;border:1px solid var(--bdr2);border-radius:var(--r);background:#fff;cursor:pointer;color:var(--t1);transition:all .15s;white-space:nowrap;line-height:1.3}
+.btn:hover{background:var(--bg2)}
+.btn-primary{background:var(--acc);color:#fff;border-color:var(--acc)}
+.btn-primary:hover{background:var(--acc2);border-color:var(--acc2)}
+.btn-sm{padding:4px 10px;font-size:12px}
+.btn-ghost{border-color:transparent;background:transparent}
+.btn-ghost:hover{background:var(--bg3);border-color:var(--bdr)}
+.btn-danger{color:var(--acc)}.btn-danger:hover{background:#fde8e8;border-color:#fbb}
+
+.qc{display:flex;align-items:center;gap:8px}
+.qb{width:26px;height:26px;border:1px solid var(--bdr2);border-radius:6px;background:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:15px;color:var(--t2);line-height:1;transition:all .15s;padding:0}
+.qb:hover{background:var(--bg3)}.qv{font-weight:700;min-width:22px;text-align:center}
+
+input,select,textarea{width:100%;padding:8px 12px;font-size:13px;border:1px solid var(--bdr2);border-radius:var(--r);background:#fff;color:var(--t1);font-family:inherit;transition:border-color .15s,box-shadow .15s;outline:none}
+input:focus,select:focus,textarea:focus{border-color:var(--acc);box-shadow:0 0 0 3px rgba(192,57,43,.1)}
+label{font-size:12px;font-weight:500;color:var(--t2);margin-bottom:4px;display:block}
+.fg{display:flex;flex-direction:column}
+.fgrid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.fcol{display:flex;flex-direction:column;gap:14px}
+
+.moverlay{position:fixed;inset:0;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;z-index:300;animation:fi .15s}
+@keyframes fi{from{opacity:0}to{opacity:1}}
+.modal{background:#fff;border-radius:var(--rl);padding:24px;width:520px;max-width:95vw;max-height:85vh;overflow-y:auto;box-shadow:var(--sh2);animation:su .2s ease}
+@keyframes su{from{transform:translateY(10px);opacity:0}to{transform:none;opacity:1}}
+.mhdr{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px}
+.mt{font-size:16px;font-weight:700;color:var(--t1)}
+.mx{width:28px;height:28px;border:none;background:var(--bg2);border-radius:6px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:16px;color:var(--t2);line-height:1;transition:all .15s}
+.mx:hover{background:var(--bg3);color:var(--t1)}
+.mfoot{display:flex;justify-content:flex-end;gap:8px;margin-top:20px;padding-top:16px;border-top:1px solid var(--bdr)}
+
+.ql{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+.qrow{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--bdr);font-size:13px}
+.qrow:last-child{border-bottom:none}
+.qtotal{display:flex;justify-content:space-between;align-items:center;padding:14px 0;font-size:15px;font-weight:700;margin-top:4px;border-top:2px solid var(--bdr)}
+
+.ai{display:flex;gap:12px;padding:12px 0;border-bottom:1px solid var(--bdr);font-size:13px}
+.ai:last-child{border-bottom:none}
+.adot{width:8px;height:8px;border-radius:50%;background:var(--acc);margin-top:5px;flex-shrink:0}
+.atime{font-size:11px;color:var(--t3);white-space:nowrap}
+
+.due-now{color:#a32d2d;font-weight:600}
+.price{font-family:'SF Mono',Menlo,monospace;font-size:13px;font-weight:500}
+.empty{padding:40px;text-align:center;color:var(--t3);font-size:13px}
+
+@media(max-width:768px){
+  .metrics{grid-template-columns:repeat(2,1fr)}
+  .fgrid{grid-template-columns:1fr}
+  .main{padding:16px}
+  .ql{grid-template-columns:1fr}
+  .hdr,.nav{padding:0 16px}
+}
+</style>
+</head>
+<body>
+
+<!-- 密码保护 -->
+<div id="pw-overlay" style="position:fixed;inset:0;background:#f5f4f0;display:flex;align-items:center;justify-content:center;z-index:9999">
+  <div style="background:#fff;border-radius:16px;padding:40px 48px;box-shadow:0 8px 32px rgba(0,0,0,.12);width:380px;max-width:92vw;text-align:center;border:1px solid #e4e1db">
+    <div style="width:52px;height:52px;background:#c0392b;border-radius:12px;display:flex;align-items:center;justify-content:center;margin:0 auto 16px;font-size:24px">🔒</div>
+    <h1 style="font-size:20px;font-weight:700;color:#1c1b18;margin-bottom:6px">HXH Power 销售系统</h1>
+    <p style="font-size:13px;color:#6b6866;margin-bottom:24px">请输入访问密码继续</p>
     <input id="pw-input" type="password" placeholder="输入密码" autocomplete="current-password"
-      style="width:100%;padding:10px 14px;font-size:14px;border:1.5px solid #ddd;border-radius:8px;outline:none;box-sizing:border-box;margin-bottom:12px;transition:border-color 0.2s"
+      style="width:100%;padding:10px 14px;font-size:14px;border:1.5px solid #ccc8c1;border-radius:8px;outline:none;margin-bottom:8px;font-family:inherit;transition:border-color .2s"
       onkeydown="if(event.key==='Enter')checkPw()"
-      onfocus="this.style.borderColor='#C0392B'"
-      onblur="this.style.borderColor='#ddd'">
-    <div id="pw-error" style="color:#C0392B;font-size:12px;margin-bottom:10px;min-height:18px"></div>
+      onfocus="this.style.borderColor='#c0392b';this.style.boxShadow='0 0 0 3px rgba(192,57,43,.1)'"
+      onblur="this.style.borderColor='#ccc8c1';this.style.boxShadow='none'">
+    <div id="pw-error" style="color:#c0392b;font-size:12px;margin-bottom:10px;min-height:18px;text-align:left"></div>
     <button onclick="checkPw()"
-      style="width:100%;padding:10px;font-size:14px;font-weight:500;background:#C0392B;color:#fff;border:none;border-radius:8px;cursor:pointer">
+      style="width:100%;padding:11px;font-size:14px;font-weight:600;background:#c0392b;color:#fff;border:none;border-radius:8px;cursor:pointer;font-family:inherit"
+      onmouseover="this.style.background='#a93226'" onmouseout="this.style.background='#c0392b'">
       进入系统
     </button>
   </div>
 </div>
 <script>
 (function(){
-  var PASS = 'hxh2026';
-  var tries = 0;
-  window.checkPw = function(){
-    var v = document.getElementById('pw-input').value;
-    if(v === PASS){
+  var PASS='hxh2026',tries=0;
+  window.checkPw=function(){
+    var v=document.getElementById('pw-input').value;
+    if(v===PASS){
       document.getElementById('pw-overlay').style.display='none';
-    } else {
+      document.getElementById('app').style.display='block';
+      if(window._appReady)window._appReady();
+    }else{
       tries++;
-      var err = document.getElementById('pw-error');
-      err.textContent = '密码错误，请重试（第'+tries+'次）';
+      document.getElementById('pw-error').textContent='密码错误，请重试';
       document.getElementById('pw-input').value='';
       document.getElementById('pw-input').focus();
     }
   };
-  document.addEventListener('DOMContentLoaded',function(){
-    document.getElementById('pw-input').focus();
-  });
+  document.addEventListener('DOMContentLoaded',function(){document.getElementById('pw-input').focus();});
 })();
 </script>
 
-<style>
-*{box-sizing:border-box;margin:0;padding:0}
-body{font-family:var(--font-sans)}
-.app{padding:1rem 0}
-.tabs{display:flex;gap:4px;border-bottom:0.5px solid var(--color-border-tertiary);margin-bottom:1.5rem}
-.tab{padding:8px 16px;font-size:13px;border:none;background:none;cursor:pointer;color:var(--color-text-secondary);border-bottom:2px solid transparent;margin-bottom:-1px}
-.tab.active{color:var(--color-text-primary);border-bottom:2px solid #C0392B;font-weight:500}
-.tab:hover:not(.active){color:var(--color-text-primary)}
-.section{display:none}.section.active{display:block}
-.metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:1.5rem}
-.metric{background:var(--color-background-secondary);border-radius:var(--border-radius-md);padding:1rem;text-align:center}
-.metric-val{font-size:24px;font-weight:500;color:var(--color-text-primary)}
-.metric-label{font-size:12px;color:var(--color-text-secondary);margin-top:4px}
-.card{background:var(--color-background-primary);border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-lg);padding:1rem 1.25rem;margin-bottom:1rem}
-.card-title{font-size:14px;font-weight:500;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between}
-.btn{padding:6px 14px;font-size:13px;border:0.5px solid var(--color-border-secondary);border-radius:var(--border-radius-md);background:none;cursor:pointer;color:var(--color-text-primary)}
-.btn:hover{background:var(--color-background-secondary)}
-.btn-red{background:#C0392B;color:white;border-color:#C0392B}
-.btn-red:hover{background:#a93226;border-color:#a93226}
-.btn-sm{padding:4px 10px;font-size:12px}
-table{width:100%;border-collapse:collapse;font-size:13px}
-th{text-align:left;padding:8px 10px;font-weight:500;font-size:12px;color:var(--color-text-secondary);border-bottom:0.5px solid var(--color-border-tertiary)}
-td{padding:8px 10px;border-bottom:0.5px solid var(--color-border-tertiary);vertical-align:middle}
-tr:last-child td{border-bottom:none}
-tr:hover td{background:var(--color-background-secondary)}
-.badge{display:inline-block;padding:2px 8px;border-radius:12px;font-size:11px;font-weight:500}
-.badge-new{background:#EAF3DE;color:#3B6D11}
-.badge-warm{background:#FAEEDA;color:#854F0B}
-.badge-hot{background:#FCEBEB;color:#A32D2D}
-.badge-won{background:#E1F5EE;color:#0F6E56}
-.badge-lost{color:#5F5E5A;background:#F1EFE8}
-.badge-dealer{background:#EEEDFE;color:#3C3489}
-.badge-project{background:#E6F1FB;color:#185FA5}
-.badge-instock{background:#EAF3DE;color:#3B6D11}
-.badge-low{background:#FAEEDA;color:#854F0B}
-.badge-out{background:#FCEBEB;color:#A32D2D}
-input,select,textarea{width:100%;padding:7px 10px;font-size:13px;border:0.5px solid var(--color-border-secondary);border-radius:var(--border-radius-md);background:var(--color-background-primary);color:var(--color-text-primary);font-family:var(--font-sans)}
-input:focus,select:focus,textarea:focus{outline:none;border-color:#C0392B}
-.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-.form-group{display:flex;flex-direction:column;gap:4px}
-.form-group label{font-size:12px;color:var(--color-text-secondary)}
-.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,0.4);display:flex;align-items:center;justify-content:center;z-index:100}
-.modal{background:var(--color-background-primary);border-radius:var(--border-radius-lg);padding:1.5rem;width:520px;max-width:95vw;max-height:85vh;overflow-y:auto}
-.modal-title{font-size:16px;font-weight:500;margin-bottom:1rem;display:flex;justify-content:space-between;align-items:center}
-.close-btn{background:none;border:none;font-size:20px;cursor:pointer;color:var(--color-text-secondary);padding:0}
-.quote-line{display:flex;justify-content:space-between;padding:6px 0;font-size:13px;border-bottom:0.5px solid var(--color-border-tertiary)}
-.quote-total{display:flex;justify-content:space-between;padding:10px 0;font-size:15px;font-weight:500}
-.activity-item{display:flex;gap:10px;padding:8px 0;border-bottom:0.5px solid var(--color-border-tertiary);font-size:13px}
-.activity-dot{width:8px;height:8px;border-radius:50%;background:#C0392B;margin-top:4px;flex-shrink:0}
-.activity-time{font-size:11px;color:var(--color-text-secondary);white-space:nowrap}
-.progress-bar{height:4px;background:var(--color-background-secondary);border-radius:2px;overflow:hidden}
-.progress-fill{height:100%;background:#C0392B;border-radius:2px;transition:width 0.3s}
-.toolbar{display:flex;gap:8px;align-items:center;margin-bottom:1rem;flex-wrap:wrap}
-.search-input{flex:1;min-width:160px;padding:7px 10px;font-size:13px}
-</style>
+<!-- 主应用（密码通过后显示） -->
+<div id="app" style="display:none">
 
-<div class="app">
-<div class="tabs">
-  <button class="tab active" onclick="switchTab('leads')"><i class="ti ti-users" aria-hidden="true"></i> 线索跟进</button>
-  <button class="tab" onclick="switchTab('inventory')"><i class="ti ti-package" aria-hidden="true"></i> 库存管理</button>
-  <button class="tab" onclick="switchTab('quote')"><i class="ti ti-file-invoice" aria-hidden="true"></i> 快速报价</button>
-  <button class="tab" onclick="switchTab('activity')"><i class="ti ti-activity" aria-hidden="true"></i> 动态</button>
-</div>
-
-<div id="sec-leads" class="section active">
-  <div class="metrics" id="lead-metrics"></div>
-  <div class="card">
-    <div class="toolbar">
-      <input class="search-input" type="text" placeholder="搜索公司名 / 国家..." oninput="filterLeads(this.value)" id="lead-search">
-      <select style="width:auto" onchange="filterLeads(document.getElementById('lead-search').value,this.value)" id="stage-filter">
-        <option value="">全部阶段</option>
-        <option>初次联系</option><option>有兴趣</option><option>报价中</option><option>谈判</option><option>成交</option><option>流失</option>
-      </select>
-      <button class="btn btn-red" onclick="openAddLead()"><i class="ti ti-plus" aria-hidden="true"></i> 新增线索</button>
+  <header class="hdr">
+    <div class="hdr-logo">
+      <div class="logo-icon">⚡</div>
+      HXH Power 销售系统
     </div>
-    <table>
-      <thead><tr>
-        <th>公司</th><th>国家</th><th>类型</th><th>阶段</th><th>需求</th><th>下次跟进</th><th>操作</th>
-      </tr></thead>
-      <tbody id="leads-table"></tbody>
-    </table>
-  </div>
-</div>
-
-<div id="sec-inventory" class="section">
-  <div class="card">
-    <div class="card-title">
-      <span>库存状态</span>
-      <button class="btn btn-sm btn-red" onclick="openAddStock()"><i class="ti ti-plus" aria-hidden="true"></i> 新增</button>
+    <div class="sync-badge">
+      <div class="sdot" id="sdot"></div>
+      <span id="slabel">本地</span>
     </div>
-    <table>
-      <thead><tr>
-        <th>型号</th><th>品牌</th><th>功率</th><th>状况</th><th>数量</th><th>参考价(USD)</th><th>状态</th><th>操作</th>
-      </tr></thead>
-      <tbody id="inv-table"></tbody>
-    </table>
-  </div>
-</div>
+  </header>
 
-<div id="sec-quote" class="section">
-  <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem">
-    <div class="card">
-      <div class="card-title">报价配置</div>
-      <div style="display:flex;flex-direction:column;gap:12px">
-        <div class="form-group"><label>客户公司</label><input type="text" id="q-company" placeholder="Titanium Power Solutions"></div>
-        <div class="form-group"><label>目的港</label>
-          <select id="q-port">
-            <option>Lagos, Nigeria</option><option>Mombasa, Kenya</option><option>Tema, Ghana</option>
-            <option>Dar es Salaam, Tanzania</option><option>Jeddah, Saudi Arabia</option>
-            <option>Dubai, UAE</option><option>Karachi, Pakistan</option><option>Manila, Philippines</option>
-            <option>自定义...</option>
+  <nav class="nav">
+    <button class="ntab active" onclick="switchTab('leads')"><i class="ti ti-users"></i> 线索跟进</button>
+    <button class="ntab" onclick="switchTab('inventory')"><i class="ti ti-package"></i> 库存管理</button>
+    <button class="ntab" onclick="switchTab('quote')"><i class="ti ti-file-invoice"></i> 快速报价</button>
+    <button class="ntab" onclick="switchTab('activity')"><i class="ti ti-activity"></i> 动态</button>
+  </nav>
+
+  <main class="main">
+
+    <!-- 线索 -->
+    <div id="sec-leads" class="section active">
+      <div class="metrics" id="lead-metrics"></div>
+      <div class="card">
+        <div class="tb">
+          <input class="si" type="text" placeholder="搜索公司名 / 国家..." oninput="filterLeads(this.value)" id="lead-search">
+          <select style="width:auto;flex-shrink:0" onchange="filterLeads(document.getElementById('lead-search').value,this.value)" id="stage-filter">
+            <option value="">全部阶段</option>
+            <option>初次联系</option><option>有兴趣</option><option>报价中</option><option>谈判</option><option>成交</option><option>流失</option>
           </select>
+          <button class="btn btn-primary" onclick="openAddLead()"><i class="ti ti-plus"></i> 新增线索</button>
         </div>
-        <div class="form-group"><label>选择机型</label>
-          <select id="q-model" onchange="updateQuote()">
-            <option value="">-- 选择库存 --</option>
-          </select>
-        </div>
-        <div class="form-group"><label>数量</label><input type="number" id="q-qty" value="1" min="1" oninput="updateQuote()"></div>
-        <div class="form-group"><label>贸易条款</label>
-          <select id="q-inco" onchange="updateQuote()">
-            <option>CIF</option><option>FOB</option><option>EXW</option>
-          </select>
-        </div>
-        <div class="form-group"><label>折扣 (%)</label><input type="number" id="q-disc" value="0" min="0" max="30" oninput="updateQuote()"></div>
-        <button class="btn btn-red" onclick="generateQuote()"><i class="ti ti-file-invoice" aria-hidden="true"></i> 生成报价单</button>
+        <table>
+          <thead><tr><th>公司</th><th>国家</th><th>类型</th><th>阶段</th><th>需求</th><th>下次跟进</th><th>操作</th></tr></thead>
+          <tbody id="leads-table"></tbody>
+        </table>
       </div>
     </div>
-    <div class="card" id="quote-preview">
-      <div class="card-title">报价预览</div>
-      <div id="quote-content" style="color:var(--color-text-secondary);font-size:13px">选择机型后自动生成报价预览</div>
-    </div>
-  </div>
-</div>
 
-<div id="sec-activity" class="section">
-  <div class="card">
-    <div class="card-title">近期动态</div>
-    <div id="activity-list"></div>
-  </div>
-</div>
+    <!-- 库存 -->
+    <div id="sec-inventory" class="section">
+      <div class="card">
+        <div class="ch">
+          <span class="ct">库存状态</span>
+          <button class="btn btn-primary btn-sm" onclick="openAddStock()"><i class="ti ti-plus"></i> 新增库存</button>
+        </div>
+        <table>
+          <thead><tr><th>型号</th><th>品牌</th><th>功率</th><th>状况</th><th>数量</th><th>参考价 (USD)</th><th>状态</th><th>操作</th></tr></thead>
+          <tbody id="inv-table"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- 报价 -->
+    <div id="sec-quote" class="section">
+      <div class="ql">
+        <div class="card">
+          <div class="ch"><span class="ct">报价配置</span></div>
+          <div class="card-body">
+            <div class="fcol">
+              <div class="fg"><label>客户公司</label><input type="text" id="q-company" placeholder="Titanium Power Solutions"></div>
+              <div class="fg"><label>目的港</label>
+                <select id="q-port">
+                  <option>Lagos, Nigeria</option><option>Mombasa, Kenya</option><option>Tema, Ghana</option>
+                  <option>Dar es Salaam, Tanzania</option><option>Jeddah, Saudi Arabia</option>
+                  <option>Dubai, UAE</option><option>Karachi, Pakistan</option><option>Manila, Philippines</option>
+                  <option>自定义...</option>
+                </select>
+              </div>
+              <div class="fg"><label>选择机型</label>
+                <select id="q-model" onchange="updateQuote()"><option value="">-- 选择库存 --</option></select>
+              </div>
+              <div class="fgrid">
+                <div class="fg"><label>数量</label><input type="number" id="q-qty" value="1" min="1" oninput="updateQuote()"></div>
+                <div class="fg"><label>贸易条款</label>
+                  <select id="q-inco" onchange="updateQuote()"><option>CIF</option><option>FOB</option><option>EXW</option></select>
+                </div>
+              </div>
+              <div class="fg"><label>折扣 (%)</label><input type="number" id="q-disc" value="0" min="0" max="30" oninput="updateQuote()"></div>
+              <button class="btn btn-primary" onclick="generateQuote()"><i class="ti ti-file-invoice"></i> 生成报价单</button>
+            </div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="ch"><span class="ct">报价预览</span></div>
+          <div class="card-body" id="quote-content" style="color:var(--t3);font-size:13px">选择机型后自动生成报价预览</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 动态 -->
+    <div id="sec-activity" class="section">
+      <div class="card">
+        <div class="ch"><span class="ct">近期动态</span></div>
+        <div class="card-body" style="padding-top:4px;padding-bottom:4px">
+          <div id="activity-list"></div>
+        </div>
+      </div>
+    </div>
+
+  </main>
 </div>
 
 <div id="modal-container"></div>
 
 <script>
-const STORAGE_KEY = 'hxh_crm_v2';
-const SHARED = true;
+// ── Firebase 配置 ───────────────────────────────────────────
+// 填入你的 Firebase 项目配置后，所有同事访问同一网址即可实时协作
+const FIREBASE_CONFIG = {
+  apiKey: "",
+  authDomain: "",
+  databaseURL: "",
+  projectId: "",
+  storageBucket: "",
+  messagingSenderId: "",
+  appId: ""
+};
+// ────────────────────────────────────────────────────────────
+
+const USE_FIREBASE = !!(FIREBASE_CONFIG.apiKey && FIREBASE_CONFIG.databaseURL);
+const STORAGE_KEY = 'hxh_crm_v3';
+let db = null;
+
+function setSyncStatus(s) {
+  const dot = document.getElementById('sdot');
+  const lbl = document.getElementById('slabel');
+  if (!dot) return;
+  dot.className = 'sdot' + (s==='on'?' on':s==='sync'?' sync':'');
+  lbl.textContent = {on:'实时同步',sync:'同步中...',local:'本地模式'}[s] || s;
+}
 
 let state = {
   leads: [
@@ -216,163 +323,169 @@ let state = {
   nextId: 10
 };
 
-const FREIGHT = {CIF:{Lagos:2800,Mombasa:3200,Tema:2900,'Dar es Salaam':3400,Jeddah:2200,Dubai:2000,Karachi:2600,Manila:3100},FOB:{},EXW:{}};
+const FREIGHT = {CIF:{Lagos:2800,Mombasa:3200,Tema:2900,'Dar es Salaam':3400,Jeddah:2200,Dubai:2000,Karachi:2600,Manila:3100}};
 
-async function loadState(){
-  try{
-    const r = await window.storage.get(STORAGE_KEY, SHARED);
-    if(r) state = JSON.parse(r.value);
-  }catch(e){}
-  render();
+function loadState() {
+  if (USE_FIREBASE) {
+    setSyncStatus('sync');
+    db.ref('hxh_crm').on('value', snap => {
+      const raw = snap.val();
+      if (raw) { try { state = JSON.parse(raw); } catch(e){} }
+      setSyncStatus('on');
+      render();
+    });
+  } else {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (saved) { try { state = JSON.parse(saved); } catch(e){} }
+    setSyncStatus('local');
+    render();
+  }
 }
 
-async function saveState(){
-  try{ await window.storage.set(STORAGE_KEY, JSON.stringify(state), SHARED); }catch(e){}
+function saveState() {
+  if (USE_FIREBASE) {
+    setSyncStatus('sync');
+    db.ref('hxh_crm').set(JSON.stringify(state)).then(()=>setSyncStatus('on'));
+  } else {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  }
 }
 
-function switchTab(t){
-  document.querySelectorAll('.tab').forEach((el,i)=>{el.classList.remove('active')});
+function switchTab(t) {
+  document.querySelectorAll('.ntab').forEach(el=>el.classList.remove('active'));
   document.querySelectorAll('.section').forEach(el=>el.classList.remove('active'));
-  const tabs = ['leads','inventory','quote','activity'];
-  document.querySelectorAll('.tab')[tabs.indexOf(t)].classList.add('active');
+  const tabs=['leads','inventory','quote','activity'];
+  document.querySelectorAll('.ntab')[tabs.indexOf(t)].classList.add('active');
   document.getElementById('sec-'+t).classList.add('active');
   if(t==='quote') populateModelSelect();
 }
 
-function stageBadge(s){
+function stageBadge(s) {
   const m={初次联系:'badge-new',有兴趣:'badge-warm',报价中:'badge-hot',谈判:'badge-hot',成交:'badge-won',流失:'badge-lost'};
   return `<span class="badge ${m[s]||'badge-new'}">${s}</span>`;
 }
-function typeBadge(t){return `<span class="badge ${t==='经销商'?'badge-dealer':'badge-project'}">${t}</span>`;}
-function stockBadge(s){const m={'in-stock':'badge-instock','low':'badge-low','out':'badge-out'};const l={'in-stock':'在库','low':'库存低','out':'无货'};return `<span class="badge ${m[s]}">${l[s]}</span>`;}
+function typeBadge(t) { return `<span class="badge ${t==='经销商'?'badge-dealer':'badge-project'}">${t}</span>`; }
+function stockBadge(s) {
+  const m={'in-stock':'badge-instock','low':'badge-low','out':'badge-out'};
+  const l={'in-stock':'在库','low':'库存低','out':'无货'};
+  return `<span class="badge ${m[s]}">${l[s]}</span>`;
+}
 
-function renderMetrics(){
+function renderMetrics() {
   const l=state.leads;
-  const stages={初次联系:0,有兴趣:0,报价中:0,成交:0};
-  l.forEach(x=>{if(x.stage in stages)stages[x.stage]++});
+  const st={初次联系:0,有兴趣:0,报价中:0,成交:0};
+  l.forEach(x=>{if(x.stage in st)st[x.stage]++});
   const today=new Date().toISOString().split('T')[0];
   const due=l.filter(x=>x.nextFollowup<=today&&x.stage!=='成交'&&x.stage!=='流失').length;
   document.getElementById('lead-metrics').innerHTML=`
-    <div class="metric"><div class="metric-val">${l.length}</div><div class="metric-label">总线索</div></div>
-    <div class="metric"><div class="metric-val" style="color:#854F0B">${stages['有兴趣']}</div><div class="metric-label">有兴趣</div></div>
-    <div class="metric"><div class="metric-val" style="color:#A32D2D">${due}</div><div class="metric-label">今日需跟进</div></div>
-    <div class="metric"><div class="metric-val" style="color:#0F6E56">${stages['成交']}</div><div class="metric-label">已成交</div></div>
+    <div class="metric"><div class="mv">${l.length}</div><div class="ml">总线索</div></div>
+    <div class="metric"><div class="mv" style="color:#854f0b">${st['有兴趣']}</div><div class="ml">有兴趣</div></div>
+    <div class="metric"><div class="mv" style="color:#a32d2d">${due}</div><div class="ml">今日需跟进</div></div>
+    <div class="metric"><div class="mv" style="color:#0f6e56">${st['成交']}</div><div class="ml">已成交</div></div>
   `;
 }
 
-function filterLeads(q='',stage=''){
+function filterLeads(q='', stage='') {
   const rows=state.leads.filter(l=>{
-    const match=!q||(l.company.toLowerCase().includes(q.toLowerCase())||l.country.toLowerCase().includes(q.toLowerCase()));
-    const stageMatch=!stage||l.stage===stage;
-    return match&&stageMatch;
+    const m=!q||(l.company.toLowerCase().includes(q.toLowerCase())||l.country.toLowerCase().includes(q.toLowerCase()));
+    return m&&(!stage||l.stage===stage);
   });
   renderLeadsTable(rows);
 }
 
-function renderLeadsTable(leads){
+function renderLeadsTable(leads) {
   const today=new Date().toISOString().split('T')[0];
+  if(!leads.length){document.getElementById('leads-table').innerHTML=`<tr><td colspan="7" class="empty">暂无线索</td></tr>`;return;}
   document.getElementById('leads-table').innerHTML=leads.map(l=>`
     <tr>
-      <td><strong style="font-size:13px">${l.company}</strong>${l.notes?`<br><span style="font-size:11px;color:var(--color-text-secondary)">${l.notes}</span>`:''}</td>
+      <td><div style="font-weight:600">${l.company}</div>${l.notes?`<div class="td-sub">${l.notes}</div>`:''}</td>
       <td>${l.country}</td>
       <td>${typeBadge(l.type)}</td>
       <td>${stageBadge(l.stage)}</td>
-      <td style="font-size:12px;max-width:120px;word-break:break-word">${l.need||'—'}</td>
-      <td style="font-size:12px;${l.nextFollowup<=today&&l.stage!=='成交'?'color:#A32D2D;font-weight:500':''}">${l.nextFollowup}</td>
+      <td style="max-width:130px;word-break:break-word;color:var(--t2)">${l.need||'—'}</td>
+      <td class="${l.nextFollowup<=today&&l.stage!=='成交'&&l.stage!=='流失'?'due-now':''}">${l.nextFollowup}</td>
       <td style="white-space:nowrap">
-        <button class="btn btn-sm" onclick="editLead(${l.id})"><i class="ti ti-edit" aria-hidden="true"></i></button>
-        <button class="btn btn-sm" onclick="updateStage(${l.id})"><i class="ti ti-arrow-right" aria-hidden="true"></i></button>
-        <button class="btn btn-sm" onclick="deleteLead(${l.id})" style="color:#A32D2D"><i class="ti ti-trash" aria-hidden="true"></i></button>
+        <button class="btn btn-sm btn-ghost" onclick="editLead(${l.id})" title="编辑"><i class="ti ti-edit"></i></button>
+        <button class="btn btn-sm btn-ghost" onclick="updateStage(${l.id})" title="推进阶段"><i class="ti ti-arrow-right"></i></button>
+        <button class="btn btn-sm btn-ghost btn-danger" onclick="deleteLead(${l.id})" title="删除"><i class="ti ti-trash"></i></button>
       </td>
     </tr>
   `).join('');
 }
 
-function renderInventory(){
+function renderInventory() {
   document.getElementById('inv-table').innerHTML=state.inventory.map(i=>`
     <tr>
-      <td><strong style="font-size:13px">${i.model}</strong></td>
+      <td><div style="font-weight:600">${i.model}</div></td>
       <td>${i.brand}</td>
       <td>${i.power}</td>
-      <td style="font-size:12px">${i.condition}</td>
-      <td>
-        <div style="display:flex;align-items:center;gap:8px">
-          <button class="btn btn-sm" onclick="changeQty(${i.id},-1)" style="padding:2px 8px">−</button>
-          <strong>${i.qty}</strong>
-          <button class="btn btn-sm" onclick="changeQty(${i.id},1)" style="padding:2px 8px">+</button>
-        </div>
-      </td>
-      <td>$${i.price.toLocaleString()}</td>
+      <td style="color:var(--t2);font-size:12px">${i.condition}</td>
+      <td><div class="qc">
+        <button class="qb" onclick="changeQty(${i.id},-1)">−</button>
+        <span class="qv">${i.qty}</span>
+        <button class="qb" onclick="changeQty(${i.id},1)">+</button>
+      </div></td>
+      <td class="price">$${i.price.toLocaleString()}</td>
       <td>${stockBadge(i.status)}</td>
-      <td><button class="btn btn-sm" onclick="editStock(${i.id})"><i class="ti ti-edit" aria-hidden="true"></i></button></td>
+      <td><button class="btn btn-sm btn-ghost" onclick="editStock(${i.id})"><i class="ti ti-edit"></i></button></td>
     </tr>
   `).join('');
 }
 
-function renderActivity(){
+function renderActivity() {
   document.getElementById('activity-list').innerHTML=state.activity.slice(0,20).map(a=>`
-    <div class="activity-item">
-      <div class="activity-dot" style="${a.type==='reply'?'background:#0F6E56':a.type==='system'?'background:#185FA5':''}"></div>
-      <div style="flex:1"><div>${a.text}</div></div>
-      <div class="activity-time">${a.time}</div>
+    <div class="ai">
+      <div class="adot" style="${a.type==='reply'?'background:var(--grn)':a.type==='system'?'background:var(--blu)':''}"></div>
+      <div style="flex:1">${a.text}</div>
+      <div class="atime">${a.time}</div>
     </div>
-  `).join('');
+  `).join('')||'<div class="empty">暂无动态</div>';
 }
 
-function render(){
+function render() {
   renderMetrics();
-  filterLeads(document.getElementById('lead-search')?.value||'', document.getElementById('stage-filter')?.value||'');
+  filterLeads(document.getElementById('lead-search')?.value||'',document.getElementById('stage-filter')?.value||'');
   renderInventory();
   renderActivity();
 }
 
 const stageOrder=['初次联系','有兴趣','报价中','谈判','成交'];
-function updateStage(id){
-  const l=state.leads.find(x=>x.id===id);
-  if(!l)return;
+
+function updateStage(id) {
+  const l=state.leads.find(x=>x.id===id);if(!l)return;
   const idx=stageOrder.indexOf(l.stage);
-  if(idx<stageOrder.length-1){
-    l.stage=stageOrder[idx+1];
-    addActivity(`${l.company} 阶段推进至「${l.stage}」`,'system');
-    saveState(); render();
-  }
+  if(idx<stageOrder.length-1){l.stage=stageOrder[idx+1];addActivity(`${l.company} 阶段推进至「${l.stage}」`,'system');saveState();render();}
 }
 
-function deleteLead(id){
+function deleteLead(id) {
   if(!confirm('确认删除该线索？'))return;
-  state.leads=state.leads.filter(x=>x.id!==id);
-  saveState(); render();
+  state.leads=state.leads.filter(x=>x.id!==id);saveState();render();
 }
 
-function changeQty(id,delta){
-  const item=state.inventory.find(x=>x.id===id);
-  if(!item)return;
+function changeQty(id,delta) {
+  const item=state.inventory.find(x=>x.id===id);if(!item)return;
   item.qty=Math.max(0,item.qty+delta);
   item.status=item.qty===0?'out':item.qty===1?'low':'in-stock';
-  addActivity(`库存更新：${item.model} 当前 ${item.qty} 台`,'system');
-  saveState(); render();
+  addActivity(`库存更新：${item.model} 当前 ${item.qty} 台`,'system');saveState();render();
 }
 
-function addActivity(text,type='system'){
+function addActivity(text,type='system') {
   const now=new Date();
-  const time=`${now.getHours()}:${String(now.getMinutes()).padStart(2,'0')}`;
-  state.activity.unshift({time:`今天 ${time}`,text,type});
+  state.activity.unshift({time:`今天 ${now.getHours()}:${String(now.getMinutes()).padStart(2,'0')}`,text,type});
   if(state.activity.length>50)state.activity=state.activity.slice(0,50);
 }
 
-function populateModelSelect(){
-  const sel=document.getElementById('q-model');
-  const val=sel.value;
+function populateModelSelect() {
+  const sel=document.getElementById('q-model'),val=sel.value;
   sel.innerHTML='<option value="">-- 选择库存 --</option>'+
     state.inventory.filter(i=>i.qty>0).map(i=>`<option value="${i.id}">${i.model} (${i.power}) — $${i.price.toLocaleString()}</option>`).join('');
   if(val)sel.value=val;
 }
 
-function updateQuote(){
+function updateQuote() {
   const modelId=parseInt(document.getElementById('q-model').value);
-  if(!modelId){document.getElementById('quote-content').innerHTML='<span style="color:var(--color-text-secondary);font-size:13px">选择机型后自动生成报价预览</span>';return;}
-  const item=state.inventory.find(x=>x.id===modelId);
-  if(!item)return;
+  if(!modelId){document.getElementById('quote-content').innerHTML='<div style="color:var(--t3);font-size:13px;padding:12px 0">选择机型后自动生成报价预览</div>';return;}
+  const item=state.inventory.find(x=>x.id===modelId);if(!item)return;
   const qty=parseInt(document.getElementById('q-qty').value)||1;
   const inco=document.getElementById('q-inco').value;
   const disc=parseFloat(document.getElementById('q-disc').value)||0;
@@ -382,114 +495,99 @@ function updateQuote(){
   const freight=inco==='CIF'?(FREIGHT.CIF[port]||3000)*qty:0;
   const total=subtotal+freight;
   document.getElementById('quote-content').innerHTML=`
-    <div style="margin-bottom:12px">
-      <div style="font-size:12px;color:var(--color-text-secondary)">机型</div>
-      <div style="font-weight:500">${item.model}</div>
-      <div style="font-size:12px;color:var(--color-text-secondary)">${item.power} | ${item.condition}</div>
+    <div style="margin-bottom:16px;padding:12px;background:var(--bg2);border-radius:8px">
+      <div style="font-size:11px;color:var(--t3);margin-bottom:4px;text-transform:uppercase;letter-spacing:.05em">机型</div>
+      <div style="font-weight:700;font-size:14px">${item.model}</div>
+      <div style="font-size:12px;color:var(--t2)">${item.power} · ${item.condition}</div>
     </div>
-    <div class="quote-line"><span>单价</span><span>USD ${unitPrice.toLocaleString(undefined,{maximumFractionDigits:0})}</span></div>
-    ${disc>0?`<div class="quote-line" style="color:#0F6E56"><span>折扣 ${disc}%</span><span>− USD ${(item.price*disc/100*qty).toLocaleString(undefined,{maximumFractionDigits:0})}</span></div>`:''}
-    <div class="quote-line"><span>数量</span><span>${qty} 台</span></div>
-    ${freight>0?`<div class="quote-line"><span>运费 (${inco} ${port})</span><span>USD ${freight.toLocaleString()}</span></div>`:''}
-    <div class="quote-total"><span>${inco} 总价</span><span style="color:#C0392B">USD ${total.toLocaleString(undefined,{maximumFractionDigits:0})}</span></div>
-    <div style="font-size:11px;color:var(--color-text-secondary);margin-top:8px">交货期：非洲 25–40天 / 中东 15–30天<br>付款：30% 定金 + 70% 提单前<br>有效期：7天</div>
+    <div class="qrow"><span style="color:var(--t2)">单价</span><span class="price">USD ${unitPrice.toLocaleString(undefined,{maximumFractionDigits:0})}</span></div>
+    ${disc>0?`<div class="qrow" style="color:var(--grn)"><span>折扣 ${disc}%</span><span>−USD ${(item.price*disc/100*qty).toLocaleString(undefined,{maximumFractionDigits:0})}</span></div>`:''}
+    <div class="qrow"><span style="color:var(--t2)">数量</span><span>${qty} 台</span></div>
+    ${freight>0?`<div class="qrow"><span style="color:var(--t2)">运费 (${inco} · ${port})</span><span class="price">USD ${freight.toLocaleString()}</span></div>`:''}
+    <div class="qtotal"><span>${inco} 总价</span><span style="color:var(--acc)">USD ${total.toLocaleString(undefined,{maximumFractionDigits:0})}</span></div>
+    <div style="font-size:11px;color:var(--t3);margin-top:14px;line-height:1.8">交货期：非洲 25–40天 / 中东 15–30天<br>付款：30% 定金 + 70% 提单前<br>有效期：7天</div>
   `;
 }
 
-function generateQuote(){
+function generateQuote() {
   const company=document.getElementById('q-company').value||'客户';
   const modelId=parseInt(document.getElementById('q-model').value);
   if(!modelId){alert('请先选择机型');return;}
   const item=state.inventory.find(x=>x.id===modelId);
   addActivity(`为 ${company} 生成报价：${item.model}`,'system');
-  saveState();render();
-  alert(`报价已生成并记录！\n可截图或复制报价预览发送给 ${company}`);
+  saveState();render();alert(`报价已生成！\n可截图或复制报价预览发送给 ${company}`);
 }
 
-function openAddLead(){
+function openAddLead() {
   document.getElementById('modal-container').innerHTML=`
-    <div class="modal-bg" onclick="if(event.target===this)closeModal()">
+    <div class="moverlay" onclick="if(event.target===this)closeModal()">
       <div class="modal">
-        <div class="modal-title">新增线索 <button class="close-btn" onclick="closeModal()">×</button></div>
-        <div style="display:flex;flex-direction:column;gap:12px">
-          <div class="form-grid">
-            <div class="form-group"><label>公司名称 *</label><input type="text" id="nl-company" placeholder="Titanium Power Solutions"></div>
-            <div class="form-group"><label>国家 *</label><input type="text" id="nl-country" placeholder="Nigeria"></div>
+        <div class="mhdr"><span class="mt">新增线索</span><button class="mx" onclick="closeModal()">×</button></div>
+        <div class="fcol">
+          <div class="fgrid">
+            <div class="fg"><label>公司名称 *</label><input type="text" id="nl-company" placeholder="Titanium Power Solutions"></div>
+            <div class="fg"><label>国家 *</label><input type="text" id="nl-country" placeholder="Nigeria"></div>
           </div>
-          <div class="form-grid">
-            <div class="form-group"><label>客户类型</label>
-              <select id="nl-type"><option>经销商</option><option>项目客户</option></select>
-            </div>
-            <div class="form-group"><label>当前阶段</label>
-              <select id="nl-stage"><option>初次联系</option><option>有兴趣</option><option>报价中</option><option>谈判</option><option>成交</option></select>
-            </div>
+          <div class="fgrid">
+            <div class="fg"><label>客户类型</label><select id="nl-type"><option>经销商</option><option>项目客户</option></select></div>
+            <div class="fg"><label>当前阶段</label><select id="nl-stage"><option>初次联系</option><option>有兴趣</option><option>报价中</option><option>谈判</option><option>成交</option></select></div>
           </div>
-          <div class="form-group"><label>需求描述</label><input type="text" id="nl-need" placeholder="Used Cummins 500kW x2"></div>
-          <div class="form-grid">
-            <div class="form-group"><label>来源</label>
-              <select id="nl-source"><option>WA主动开发</option><option>独立站询盘</option><option>转介绍</option><option>展会</option><option>其他</option></select>
-            </div>
-            <div class="form-group"><label>下次跟进</label><input type="date" id="nl-followup" value="${new Date(Date.now()+3*86400000).toISOString().split('T')[0]}"></div>
+          <div class="fg"><label>需求描述</label><input type="text" id="nl-need" placeholder="Used Cummins 500kW x2"></div>
+          <div class="fgrid">
+            <div class="fg"><label>来源</label><select id="nl-source"><option>WA主动开发</option><option>独立站询盘</option><option>转介绍</option><option>展会</option><option>其他</option></select></div>
+            <div class="fg"><label>下次跟进</label><input type="date" id="nl-followup" value="${new Date(Date.now()+3*86400000).toISOString().split('T')[0]}"></div>
           </div>
-          <div class="form-group"><label>备注</label><textarea id="nl-notes" rows="2" placeholder="初次对话内容..."></textarea></div>
-          <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:8px">
-            <button class="btn" onclick="closeModal()">取消</button>
-            <button class="btn btn-red" onclick="saveLead()">保存线索</button>
-          </div>
+          <div class="fg"><label>备注</label><textarea id="nl-notes" rows="2" placeholder="初次对话内容..."></textarea></div>
+        </div>
+        <div class="mfoot">
+          <button class="btn" onclick="closeModal()">取消</button>
+          <button class="btn btn-primary" onclick="saveLead()">保存线索</button>
         </div>
       </div>
     </div>`;
 }
 
-function editLead(id){
-  const l=state.leads.find(x=>x.id===id);
-  if(!l)return;
+function editLead(id) {
+  const l=state.leads.find(x=>x.id===id);if(!l)return;
   document.getElementById('modal-container').innerHTML=`
-    <div class="modal-bg" onclick="if(event.target===this)closeModal()">
+    <div class="moverlay" onclick="if(event.target===this)closeModal()">
       <div class="modal">
-        <div class="modal-title">编辑线索 — ${l.company} <button class="close-btn" onclick="closeModal()">×</button></div>
-        <div style="display:flex;flex-direction:column;gap:12px">
-          <div class="form-grid">
-            <div class="form-group"><label>公司名称</label><input type="text" id="el-company" value="${l.company}"></div>
-            <div class="form-group"><label>国家</label><input type="text" id="el-country" value="${l.country}"></div>
+        <div class="mhdr"><span class="mt">编辑 — ${l.company}</span><button class="mx" onclick="closeModal()">×</button></div>
+        <div class="fcol">
+          <div class="fgrid">
+            <div class="fg"><label>公司名称</label><input type="text" id="el-company" value="${l.company}"></div>
+            <div class="fg"><label>国家</label><input type="text" id="el-country" value="${l.country}"></div>
           </div>
-          <div class="form-grid">
-            <div class="form-group"><label>类型</label><select id="el-type"><option ${l.type==='经销商'?'selected':''}>经销商</option><option ${l.type==='项目客户'?'selected':''}>项目客户</option></select></div>
-            <div class="form-group"><label>阶段</label><select id="el-stage">${stageOrder.map(s=>`<option ${l.stage===s?'selected':''}>${s}</option>`).join('')}<option ${l.stage==='流失'?'selected':''}>流失</option></select></div>
+          <div class="fgrid">
+            <div class="fg"><label>类型</label><select id="el-type"><option ${l.type==='经销商'?'selected':''}>经销商</option><option ${l.type==='项目客户'?'selected':''}>项目客户</option></select></div>
+            <div class="fg"><label>阶段</label><select id="el-stage">${stageOrder.map(s=>`<option ${l.stage===s?'selected':''}>${s}</option>`).join('')}<option ${l.stage==='流失'?'selected':''}>流失</option></select></div>
           </div>
-          <div class="form-group"><label>需求</label><input type="text" id="el-need" value="${l.need||''}"></div>
-          <div class="form-group"><label>下次跟进</label><input type="date" id="el-followup" value="${l.nextFollowup}"></div>
-          <div class="form-group"><label>备注</label><textarea id="el-notes" rows="3">${l.notes||''}</textarea></div>
-          <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:8px">
-            <button class="btn" onclick="closeModal()">取消</button>
-            <button class="btn btn-red" onclick="saveEditLead(${id})">保存</button>
-          </div>
+          <div class="fg"><label>需求</label><input type="text" id="el-need" value="${l.need||''}"></div>
+          <div class="fg"><label>下次跟进</label><input type="date" id="el-followup" value="${l.nextFollowup}"></div>
+          <div class="fg"><label>备注</label><textarea id="el-notes" rows="3">${l.notes||''}</textarea></div>
+        </div>
+        <div class="mfoot">
+          <button class="btn" onclick="closeModal()">取消</button>
+          <button class="btn btn-primary" onclick="saveEditLead(${id})">保存</button>
         </div>
       </div>
     </div>`;
 }
 
-function saveLead(){
+function saveLead() {
   const c=document.getElementById('nl-company').value.trim();
   const co=document.getElementById('nl-country').value.trim();
   if(!c||!co){alert('公司名和国家为必填');return;}
-  state.leads.unshift({
-    id:state.nextId++,company:c,country:co,
-    type:document.getElementById('nl-type').value,
-    stage:document.getElementById('nl-stage').value,
-    need:document.getElementById('nl-need').value,
-    source:document.getElementById('nl-source').value,
-    nextFollowup:document.getElementById('nl-followup').value,
-    notes:document.getElementById('nl-notes').value,
-    created:new Date().toISOString().split('T')[0]
-  });
-  addActivity(`新增线索：${c} (${co})`,'system');
-  saveState();closeModal();render();
+  state.leads.unshift({id:state.nextId++,company:c,country:co,
+    type:document.getElementById('nl-type').value,stage:document.getElementById('nl-stage').value,
+    need:document.getElementById('nl-need').value,source:document.getElementById('nl-source').value,
+    nextFollowup:document.getElementById('nl-followup').value,notes:document.getElementById('nl-notes').value,
+    created:new Date().toISOString().split('T')[0]});
+  addActivity(`新增线索：${c} (${co})`,'system');saveState();closeModal();render();
 }
 
-function saveEditLead(id){
-  const l=state.leads.find(x=>x.id===id);
-  if(!l)return;
+function saveEditLead(id) {
+  const l=state.leads.find(x=>x.id===id);if(!l)return;
   l.company=document.getElementById('el-company').value;
   l.country=document.getElementById('el-country').value;
   l.type=document.getElementById('el-type').value;
@@ -497,74 +595,69 @@ function saveEditLead(id){
   l.need=document.getElementById('el-need').value;
   l.nextFollowup=document.getElementById('el-followup').value;
   l.notes=document.getElementById('el-notes').value;
-  addActivity(`更新线索：${l.company}`,'system');
-  saveState();closeModal();render();
+  addActivity(`更新线索：${l.company}`,'system');saveState();closeModal();render();
 }
 
-function openAddStock(){
+function openAddStock() {
   document.getElementById('modal-container').innerHTML=`
-    <div class="modal-bg" onclick="if(event.target===this)closeModal()">
+    <div class="moverlay" onclick="if(event.target===this)closeModal()">
       <div class="modal">
-        <div class="modal-title">新增库存 <button class="close-btn" onclick="closeModal()">×</button></div>
-        <div style="display:flex;flex-direction:column;gap:12px">
-          <div class="form-grid">
-            <div class="form-group"><label>型号 *</label><input type="text" id="ns-model" placeholder="Cummins KTA38-G2"></div>
-            <div class="form-group"><label>品牌</label><select id="ns-brand"><option>Cummins</option><option>Caterpillar</option><option>MTU</option><option>其他</option></select></div>
+        <div class="mhdr"><span class="mt">新增库存</span><button class="mx" onclick="closeModal()">×</button></div>
+        <div class="fcol">
+          <div class="fgrid">
+            <div class="fg"><label>型号 *</label><input type="text" id="ns-model" placeholder="Cummins KTA38-G2"></div>
+            <div class="fg"><label>品牌</label><select id="ns-brand"><option>Cummins</option><option>Caterpillar</option><option>MTU</option><option>其他</option></select></div>
           </div>
-          <div class="form-grid">
-            <div class="form-group"><label>功率</label><input type="text" id="ns-power" placeholder="660–1200kW"></div>
-            <div class="form-group"><label>参考价 (USD)</label><input type="number" id="ns-price" placeholder="145000"></div>
+          <div class="fgrid">
+            <div class="fg"><label>功率</label><input type="text" id="ns-power" placeholder="660–1200kW"></div>
+            <div class="fg"><label>参考价 (USD)</label><input type="number" id="ns-price" placeholder="145000"></div>
           </div>
-          <div class="form-grid">
-            <div class="form-group"><label>数量</label><input type="number" id="ns-qty" value="1" min="1"></div>
-            <div class="form-group"><label>状况</label><select id="ns-cond"><option>Used/Refurbished</option><option>Used/As-is</option><option>Fully Rebuilt</option></select></div>
+          <div class="fgrid">
+            <div class="fg"><label>数量</label><input type="number" id="ns-qty" value="1" min="1"></div>
+            <div class="fg"><label>状况</label><select id="ns-cond"><option>Used/Refurbished</option><option>Used/As-is</option><option>Fully Rebuilt</option></select></div>
           </div>
-          <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:8px">
-            <button class="btn" onclick="closeModal()">取消</button>
-            <button class="btn btn-red" onclick="saveStock()">添加库存</button>
-          </div>
+        </div>
+        <div class="mfoot">
+          <button class="btn" onclick="closeModal()">取消</button>
+          <button class="btn btn-primary" onclick="saveStock()">添加库存</button>
         </div>
       </div>
     </div>`;
 }
 
-function editStock(id){
+function editStock(id) {
   const i=state.inventory.find(x=>x.id===id);if(!i)return;
   document.getElementById('modal-container').innerHTML=`
-    <div class="modal-bg" onclick="if(event.target===this)closeModal()">
+    <div class="moverlay" onclick="if(event.target===this)closeModal()">
       <div class="modal">
-        <div class="modal-title">编辑库存 <button class="close-btn" onclick="closeModal()">×</button></div>
-        <div style="display:flex;flex-direction:column;gap:12px">
-          <div class="form-group"><label>型号</label><input type="text" id="es-model" value="${i.model}"></div>
-          <div class="form-grid">
-            <div class="form-group"><label>功率</label><input type="text" id="es-power" value="${i.power}"></div>
-            <div class="form-group"><label>参考价 (USD)</label><input type="number" id="es-price" value="${i.price}"></div>
+        <div class="mhdr"><span class="mt">编辑库存 — ${i.model}</span><button class="mx" onclick="closeModal()">×</button></div>
+        <div class="fcol">
+          <div class="fg"><label>型号</label><input type="text" id="es-model" value="${i.model}"></div>
+          <div class="fgrid">
+            <div class="fg"><label>功率</label><input type="text" id="es-power" value="${i.power}"></div>
+            <div class="fg"><label>参考价 (USD)</label><input type="number" id="es-price" value="${i.price}"></div>
           </div>
-          <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:8px">
-            <button class="btn" onclick="closeModal()">取消</button>
-            <button class="btn btn-red" onclick="saveEditStock(${id})">保存</button>
-          </div>
+        </div>
+        <div class="mfoot">
+          <button class="btn" onclick="closeModal()">取消</button>
+          <button class="btn btn-primary" onclick="saveEditStock(${id})">保存</button>
         </div>
       </div>
     </div>`;
 }
 
-function saveStock(){
+function saveStock() {
   const m=document.getElementById('ns-model').value.trim();
   if(!m){alert('型号为必填');return;}
   const qty=parseInt(document.getElementById('ns-qty').value)||1;
-  state.inventory.push({
-    id:state.nextId++,model:m,brand:document.getElementById('ns-brand').value,
-    power:document.getElementById('ns-power').value,
-    condition:document.getElementById('ns-cond').value,
+  state.inventory.push({id:state.nextId++,model:m,brand:document.getElementById('ns-brand').value,
+    power:document.getElementById('ns-power').value,condition:document.getElementById('ns-cond').value,
     qty,price:parseInt(document.getElementById('ns-price').value)||0,
-    status:qty===0?'out':qty===1?'low':'in-stock'
-  });
-  addActivity(`新增库存：${m}`,'system');
-  saveState();closeModal();render();
+    status:qty===0?'out':qty===1?'low':'in-stock'});
+  addActivity(`新增库存：${m}`,'system');saveState();closeModal();render();
 }
 
-function saveEditStock(id){
+function saveEditStock(id) {
   const i=state.inventory.find(x=>x.id===id);if(!i)return;
   i.model=document.getElementById('es-model').value;
   i.power=document.getElementById('es-power').value;
@@ -575,5 +668,12 @@ function saveEditStock(id){
 
 function closeModal(){document.getElementById('modal-container').innerHTML='';}
 
-loadState();
+window._appReady = function() {
+  if (USE_FIREBASE) {
+    try { firebase.initializeApp(FIREBASE_CONFIG); db=firebase.database(); } catch(e){}
+  }
+  loadState();
+};
 </script>
+</body>
+</html>
