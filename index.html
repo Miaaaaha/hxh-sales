@@ -303,6 +303,7 @@ label{font-size:12px;font-weight:500;color:var(--t2);margin-bottom:4px;display:b
                   <button class="dtab" onclick="setDocType('deposit',this)">定金形式发票 Deposit PI</button>
                   <button class="dtab" onclick="setDocType('ci',this)">商业发票 Commercial Invoice</button>
                   <button class="dtab" onclick="setDocType('pl',this)">装箱单 Packing List</button>
+                  <button class="dtab" onclick="setDocType('sc',this)">销售合同 Sales Contract</button>
                 </div>
               </div>
               <!-- CI 抬头选择（仅 Commercial Invoice 显示） -->
@@ -337,7 +338,7 @@ label{font-size:12px;font-weight:500;color:var(--t2);margin-bottom:4px;display:b
               <div class="fgrid">
                 <div class="fg"><label>Quantity</label><input type="number" id="q-qty" value="1" min="1" oninput="updateQuote()"></div>
                 <div class="fg"><label>Incoterms 2020</label>
-                  <select id="q-inco" onchange="updateQuote()"><option>CIF</option><option>FOB</option><option>EXW</option></select>
+                  <select id="q-inco" onchange="autoInsuranceTerm();updateQuote()"><option>CIF</option><option>FOB</option><option>EXW</option></select>
                 </div>
               </div>
               <!-- 价格明细（手填） -->
@@ -424,6 +425,68 @@ label{font-size:12px;font-weight:500;color:var(--t2);margin-bottom:4px;display:b
                   <div class="fg"><label>WhatsApp</label><input type="text" id="sc-wa" placeholder="+86 138 0000 0000" oninput="saveSellerContact()"></div>
                 </div>
                 <div class="fg"><label>Email</label><input type="text" id="sc-email" placeholder="mia@hpowerpro.com" oninput="saveSellerContact()"></div>
+              </div>
+              <!-- 收款账户 -->
+              <div style="border-top:1px solid var(--bdr);padding-top:10px;margin-top:4px">
+                <div style="font-size:11px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">收款账户 Bank Account</div>
+                <div class="fg">
+                  <select id="q-bank-account" onchange="updateQuote()">
+                    <option value="">-- 选择收款账户 --</option>
+                  </select>
+                </div>
+              </div>
+              <!-- 质保条款 -->
+              <div style="border-top:1px solid var(--bdr);padding-top:10px;margin-top:4px">
+                <div style="font-size:11px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">质保 Warranty</div>
+                <div class="fg"><label>质保类型 Warranty Type</label>
+                  <select id="q-warranty-type" onchange="toggleWarrantyFields();updateQuote()">
+                    <option value="none">无质保 No Warranty</option>
+                    <option value="limited">有限质保 Limited Warranty</option>
+                    <option value="tbd">质保待议 Warranty TBD</option>
+                  </select>
+                </div>
+                <div id="q-warranty-detail" style="display:none">
+                  <div class="fgrid">
+                    <div class="fg"><label>质保期</label><input type="text" id="q-warranty-period" placeholder="e.g. 12 months" oninput="updateQuote()"></div>
+                    <div class="fg"><label>起算点</label><input type="text" id="q-warranty-start" placeholder="e.g. from commissioning date" oninput="updateQuote()"></div>
+                  </div>
+                  <div class="fg"><label>质保范围</label><input type="text" id="q-warranty-scope" placeholder="e.g. Manufacturing defects only" oninput="updateQuote()"></div>
+                </div>
+              </div>
+              <!-- 合同条款 -->
+              <div style="border-top:1px solid var(--bdr);padding-top:10px;margin-top:4px">
+                <div style="font-size:11px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">合同条款 Terms（可编辑）</div>
+                <div class="fg"><label>检验 Inspection</label>
+                  <textarea id="q-term-inspection" rows="2" oninput="updateQuote()">Inspection at seller's warehouse before shipment. Buyer may appoint third-party inspector at buyer's cost.</textarea>
+                </div>
+                <div class="fg"><label>保险 Insurance</label>
+                  <textarea id="q-term-insurance" rows="2" oninput="updateQuote()">Insurance to be arranged by buyer.</textarea>
+                </div>
+                <div class="fg"><label>不可抗力 Force Majeure</label>
+                  <textarea id="q-term-force" rows="2" oninput="updateQuote()">Neither party shall be liable for failure to perform due to force majeure events beyond reasonable control.</textarea>
+                </div>
+                <div class="fg"><label>争议解决 Dispute Resolution</label>
+                  <textarea id="q-term-dispute" rows="2" oninput="updateQuote()">Any dispute shall be settled by China International Economic and Trade Arbitration Commission (CIETAC).</textarea>
+                </div>
+                <div class="fgrid">
+                  <div class="fg"><label>银行手续费 Bank Charges</label>
+                    <select id="q-bank-charges" onchange="updateQuote()">
+                      <option value="SHA" selected>SHA（各付各）</option>
+                      <option value="OUR">OUR（汇款方承担）</option>
+                      <option value="BEN">BEN（受益方承担）</option>
+                    </select>
+                  </div>
+                  <div class="fg"><label>HS Code</label><input type="text" id="q-hs-code" value="8502.20.0000" oninput="updateQuote()"></div>
+                </div>
+              </div>
+              <!-- 汇率换算（仅内部参考） -->
+              <div style="border-top:1px solid var(--bdr);padding-top:10px;margin-top:4px">
+                <div style="font-size:11px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px">汇率参考（内部，不出单据）</div>
+                <div class="fgrid">
+                  <div class="fg"><label>汇率 USD 1 = </label><input type="number" id="q-fx-rate" placeholder="7.26" step="0.001" oninput="updateFxDisplay()"></div>
+                  <div class="fg"><label>本地货币</label><input type="text" id="q-fx-currency" placeholder="CNY / NGN..." oninput="updateFxDisplay()"></div>
+                </div>
+                <div id="q-fx-result" style="font-size:12px;color:var(--t2);margin-top:4px;display:none"></div>
               </div>
               <div style="display:flex;gap:8px;margin-top:4px">
                 <button class="btn btn-primary" style="flex:1" onclick="generateQuote()"><i class="ti ti-device-floppy"></i> Save & Log</button>
@@ -608,7 +671,12 @@ let state = {
   ],
   nextWarehouseId: 8,
   orders: [],
-  nextOrderSeq: 1
+  nextOrderSeq: 1,
+  bankAccounts: [
+    {id:1, name:'HXH Power Equipment Co., Ltd.', bank:'DBS Bank (Hong Kong) Limited', account:'', swift:'', currency:'USD', notes:''},
+    {id:2, name:"Shanghai Naifei Int'l Trade Co., Ltd.", bank:'DBS Bank (Hong Kong) Limited', account:'79969931276762', swift:'DHBKHKHH', currency:'USD', notes:'Branch: 016-478 | 11/F The Center, 99 Queen\'s Road Central, HK'}
+  ],
+  nextBankAccountId: 3
 };
 
 const FREIGHT = {CIF:{Lagos:2800,Mombasa:3200,Tema:2900,'Dar es Salaam':3400,Jeddah:2200,Dubai:2000,Karachi:2600,Manila:3100}};
@@ -660,6 +728,11 @@ function migrateState(s) {
   if (!s.nextWarehouseId) s.nextWarehouseId = 8;
   if (!s.orders) s.orders = [];
   if (!s.nextOrderSeq) s.nextOrderSeq = 1;
+  if (!s.bankAccounts) s.bankAccounts = [
+    {id:1,name:'HXH Power Equipment Co., Ltd.',bank:'DBS Bank (Hong Kong) Limited',account:'',swift:'',currency:'USD',notes:''},
+    {id:2,name:"Shanghai Naifei Int'l Trade Co., Ltd.",bank:'DBS Bank (Hong Kong) Limited',account:'79969931276762',swift:'DHBKHKHH',currency:'USD',notes:'Branch: 016-478'}
+  ];
+  if (!s.nextBankAccountId) s.nextBankAccountId = 3;
   // 检测是否为旧格式（有qty、无machineId）
   if (s.inventory && s.inventory.length && s.inventory[0].qty !== undefined && !s.inventory[0].machineId) {
     const year = new Date().getFullYear();
@@ -720,7 +793,7 @@ function switchTab(t) {
   const idx=tabs.indexOf(t);
   if(idx>=0) document.querySelectorAll('.ntab')[idx].classList.add('active');
   document.getElementById('sec-'+t).classList.add('active');
-  if(t==='quote'){ populateModelSelect(); loadSellerContact(); populateCiCompanySel(); }
+  if(t==='quote'){ populateModelSelect(); loadSellerContact(); populateCiCompanySel(); populateBankAccountSel(); }
   if(t==='quotes') renderQuoteHistory();
   if(t==='freight') renderFreight();
   if(t==='dashboard'){ renderDashboard(); populateCcMachine(); }
@@ -764,8 +837,8 @@ function renderLeadsTable(leads) {
   if(!leads.length){document.getElementById('leads-table').innerHTML=`<tr><td colspan="8" class="empty">暂无线索</td></tr>`;return;}
   document.getElementById('leads-table').innerHTML=leads.map(l=>`
     <tr>
-      <td><div style="font-weight:600">${l.company}</div>${l.notes?`<div class="td-sub">${l.notes}</div>`:''}</td>
-      <td>${l.country}</td>
+      <td><div style="font-weight:600">${l.company}${l.rating?` <span style="font-size:10px;font-weight:700;padding:1px 5px;border-radius:3px;background:${l.rating==='A'?'#fef3e2;color:#854f0b':l.rating==='B'?'#e8f0fe;color:#185fa5':'#f0f0f0;color:#666'}">${l.rating}</span>`:''}</div>${l.notes?`<div class="td-sub">${l.notes}</div>`:''}</td>
+      <td>${l.country}${l.timezone?`<div style="font-size:10px;color:var(--t3)">${l.timezone}</div>`:''}</td>
       <td>${typeBadge(l.type)}</td>
       <td>${stageBadge(l.stage)}</td>
       <td style="max-width:120px;word-break:break-word;color:var(--t2)">${l.need||'—'}</td>
@@ -962,7 +1035,7 @@ function setDocType(type, el) {
   document.getElementById('ci-seller-group').style.display = (type==='ci'||type==='pl') ? '' : 'none';
   document.getElementById('pl-fields-group').style.display = (type==='pl') ? '' : 'none';
   if(type==='ci'||type==='pl') populateCiCompanySel();
-  const titles = {quote:'初始报价 Initial Quotation', pi:'形式发票 Proforma Invoice', deposit:'定金形式发票 Deposit PI', ci:'商业发票 Commercial Invoice', pl:'装箱单 Packing List'};
+  const titles = {quote:'初始报价 Initial Quotation', pi:'形式发票 Proforma Invoice', deposit:'定金形式发票 Deposit PI', ci:'商业发票 Commercial Invoice', pl:'装箱单 Packing List', sc:'销售合同 Sales Contract'};
   document.getElementById('doc-preview-title').textContent = titles[type];
   updateQuote();
 }
@@ -1006,6 +1079,38 @@ function usd(n) { return 'USD '+n.toLocaleString(undefined,{minimumFractionDigit
 function fmtDate(d=new Date()) { return d.toLocaleDateString('en-GB',{day:'2-digit',month:'long',year:'numeric'}); }
 function addDays(d,n) { const r=new Date(d); r.setDate(r.getDate()+n); return r; }
 function leadTime(port) { return /Nigeria|Kenya|Ghana|Tanzania|Cameroon/i.test(port)?'25–40':'15–30'; }
+
+function toggleWarrantyFields() {
+  const t=document.getElementById('q-warranty-type')?.value;
+  const d=document.getElementById('q-warranty-detail');
+  if(d) d.style.display=(t==='limited')?'':'none';
+}
+function updateFxDisplay() {
+  const rate=parseFloat(document.getElementById('q-fx-rate')?.value)||0;
+  const cur=document.getElementById('q-fx-currency')?.value.trim()||'';
+  const total=parseFloat(document.getElementById('q-price-machine')?.value||0)
+             +parseFloat(document.getElementById('q-price-freight')?.value||0)
+             +parseFloat(document.getElementById('q-price-insurance')?.value||0)
+             +parseFloat(document.getElementById('q-other-amt')?.value||0);
+  const el=document.getElementById('q-fx-result');
+  if(el&&rate>0&&total>0) {
+    el.style.display='';
+    el.textContent=`合计 ${usd(total)} ≈ ${cur} ${(total*rate).toLocaleString(undefined,{maximumFractionDigits:0})}`;
+  } else if(el) el.style.display='none';
+}
+function populateBankAccountSel() {
+  const sel=document.getElementById('q-bank-account');if(!sel)return;
+  const val=sel.value;
+  sel.innerHTML='<option value="">-- 选择收款账户 --</option>'+(state.bankAccounts||[]).map(a=>`<option value="${a.id}">${a.name} (${a.bank})</option>`).join('');
+  if(val)sel.value=val;
+}
+function autoInsuranceTerm() {
+  const inco=document.getElementById('q-inco')?.value;
+  const el=document.getElementById('q-term-insurance');
+  if(!el)return;
+  if(inco==='CIF') el.value='Insurance covered by seller at 110% of invoice value. Buyer need not arrange separately.';
+  else el.value='Insurance to be arranged by buyer.';
+}
 
 function onMachineSelect() {
   const machineId=document.getElementById('q-model').value;
@@ -1062,12 +1167,27 @@ function calcValues() {
   const plGw      =parseFloat(document.getElementById('pl-gw')?.value)||0;
   const plCbm     =parseFloat(document.getElementById('pl-cbm')?.value)||0;
   const plRemarks =document.getElementById('pl-remarks')?.value.trim()||'';
+  // 新增字段
+  const bankAccountId=parseInt(document.getElementById('q-bank-account')?.value)||0;
+  const bankAccount=(state.bankAccounts||[]).find(a=>a.id===bankAccountId)||null;
+  const warrantyType=document.getElementById('q-warranty-type')?.value||'none';
+  const warrantyPeriod=document.getElementById('q-warranty-period')?.value.trim()||'';
+  const warrantyScope=document.getElementById('q-warranty-scope')?.value.trim()||'';
+  const warrantyStart=document.getElementById('q-warranty-start')?.value.trim()||'';
+  const termInspection=document.getElementById('q-term-inspection')?.value.trim()||'';
+  const termInsurance=document.getElementById('q-term-insurance')?.value.trim()||'';
+  const termForce=document.getElementById('q-term-force')?.value.trim()||'';
+  const termDispute=document.getElementById('q-term-dispute')?.value.trim()||'';
+  const bankCharges=document.getElementById('q-bank-charges')?.value||'SHA';
+  const hsCode=document.getElementById('q-hs-code')?.value.trim()||'8502.20.0000';
   return {item,qty,inco,company,address,port,loading,refPi,
           priceMachine,priceFreight,priceInsurance,otherName,otherAmt,
           unitPrice,total,deposit:total*0.3,balance:total*0.7,
           deliveryTime,pickupMethod,pickupAddr,pickupReq,inspection,
           plPkgs,plPacking,plNw,plGw,plCbm,plRemarks,
-          sc,ciCompany};
+          sc,ciCompany,
+          bankAccount,warrantyType,warrantyPeriod,warrantyScope,warrantyStart,
+          termInspection,termInsurance,termForce,termDispute,bankCharges,hsCode};
 }
 
 const SELLER_ADDR='No.6, Lane 3, Shatian Environmental Protection Middle Road, Shatian Town, Dongguan City, Guangdong Province, China';
@@ -1100,14 +1220,14 @@ function updateQuote() {
   setDisp('q-total-display',usd(v.total));
   setDisp('q-deposit-display',usd(v.deposit));
   setDisp('q-balance-display',usd(v.balance));
-  ({quote:renderInitialQuote,pi:renderPI,deposit:renderDepositPI,ci:renderCI,pl:renderPackingList})[docType](v);
+  ({quote:renderInitialQuote,pi:renderPI,deposit:renderDepositPI,ci:renderCI,pl:renderPackingList,sc:renderSalesContract})[docType](v);
 }
 
 function generateQuote() {
   const v=calcValues();
   if(!v){alert('Please select a machine first.');return;}
-  const prefixes={quote:'Q',pi:'PI',deposit:'DPI',ci:'CI',pl:'PL'};
-  const labels={quote:'Quotation',pi:'Proforma Invoice',deposit:'Deposit PI',ci:'Commercial Invoice',pl:'Packing List'};
+  const prefixes={quote:'Q',pi:'PI',deposit:'DPI',ci:'CI',pl:'PL',sc:'SC'};
+  const labels={quote:'Quotation',pi:'Proforma Invoice',deposit:'Deposit PI',ci:'Commercial Invoice',pl:'Packing List',sc:'Sales Contract'};
   const no=docNo(prefixes[docType]);
   state.nextDocSeq=(state.nextDocSeq||1)+1;
   if(!state.quotes) state.quotes=[];
@@ -1178,7 +1298,50 @@ function machineSpecBlock(item) {
   if(item.voltage||item.frequency) specs.push(`Voltage / Freq.: ${[item.voltage,item.frequency].filter(Boolean).join(' / ')}`);
   if(item.length&&item.width&&item.height) specs.push(`Dimensions (L×W×H): ${item.length}m × ${item.width}m × ${item.height}m`);
   if(item.weight) specs.push(`Net Weight: ${Number(item.weight).toLocaleString()} kg`);
+  if(item.engineSN) specs.push(`Engine S/N: ${item.engineSN}`);
+  if(item.altSN) specs.push(`Alternator S/N: ${item.altSN}`);
   return specs.length ? `<span style="font-size:11px;color:#555">${specs.join('<br>')}</span>` : '';
+}
+
+function warrantyBlock(v) {
+  if(!v.warrantyType||v.warrantyType==='none')
+    return `<div style="margin-top:4px;font-size:11.5px;color:#666"><strong>质保 Warranty:</strong> Sold as-is, no warranty provided.</div>`;
+  if(v.warrantyType==='tbd')
+    return `<div style="margin-top:4px;font-size:11.5px;color:#666"><strong>质保 Warranty:</strong> Warranty terms to be discussed and agreed separately.</div>`;
+  return `<div style="margin-top:4px;font-size:11.5px;color:#666"><strong>质保 Limited Warranty:</strong> ${v.warrantyPeriod||''} from ${v.warrantyStart||'delivery date'}. Coverage: ${v.warrantyScope||'manufacturing defects only'}.</div>`;
+}
+function bankAccountBlock(v) {
+  if(!v.bankAccount) return '';
+  const a=v.bankAccount;
+  return `<div class="doc-bank">
+    <div style="font-weight:700;font-size:10.5px;text-transform:uppercase;letter-spacing:.07em;color:#888;margin-bottom:8px">Beneficiary Bank Details 收款账户</div>
+    <div class="doc-kv">
+      <span>Account Name:</span><span>${a.name}</span>
+      <span>Bank:</span><span>${a.bank}</span>
+      ${a.account?`<span>Account No.:</span><span>${a.account}</span>`:''}
+      ${a.swift?`<span>SWIFT / BIC:</span><span>${a.swift}</span>`:''}
+      <span>Currency:</span><span>${a.currency||'USD'}</span>
+      ${a.notes?`<span>Notes:</span><span>${a.notes}</span>`:''}
+    </div>
+    <div style="margin-top:8px;font-size:11px;color:#854f0b;background:#fef3e2;padding:6px 10px;border-radius:4px">⚠ Please include PI/Contract Number in the payment reference field.</div>
+  </div>`;
+}
+function contractTermsBlock(v) {
+  const items=[];
+  if(v.termInspection) items.push(['检验 Inspection',v.termInspection]);
+  if(v.termInsurance) items.push(['保险 Insurance',v.termInsurance]);
+  if(v.termForce) items.push(['不可抗力 Force Majeure',v.termForce]);
+  if(v.termDispute) items.push(['争议解决 Dispute Resolution',v.termDispute]);
+  if(v.bankCharges) items.push(['银行手续费 Bank Charges',v.bankCharges]);
+  if(!items.length) return '';
+  return `<div style="margin-top:12px;font-size:11.5px">
+    <div style="font-weight:700;font-size:10.5px;text-transform:uppercase;letter-spacing:.07em;color:#888;margin-bottom:6px">合同条款 Terms &amp; Conditions</div>
+    <div style="background:#f8f7f4;border:1px solid #e4e1db;border-radius:6px;padding:10px 14px">
+      <div class="doc-kv" style="font-size:11px">
+        ${items.map(([k,val])=>`<span style="font-weight:600">${k}:</span><span>${val}</span>`).join('')}
+      </div>
+    </div>
+  </div>`;
 }
 
 function renderInitialQuote(v) {
@@ -1227,10 +1390,13 @@ function renderInitialQuote(v) {
         <span>交货期 Lead Time:</span><span>${v.deliveryTime||leadTime(v.port)+' working days from receipt of deposit'}</span>
         <span>有效期 Validity:</span><span>30 days from date of issue</span>
         <span>货币 Currency:</span><span>United States Dollar (USD)</span>
-        <span>验货 Inspection:</span><span>${v.inspection||'Available upon request prior to shipment'}</span>
+        ${v.termInspection?`<span>检验 Inspection:</span><span>${v.termInspection}</span>`:`<span>验货 Inspection:</span><span>${v.inspection||'Available upon request prior to shipment'}</span>`}
       </div>
     </div>
     ${logisticsBlock(v)}
+    ${warrantyBlock(v)}
+    ${contractTermsBlock(v)}
+    ${bankAccountBlock(v)}
     <div style="font-size:11.5px;margin-top:14px;color:#555">We look forward to your valued confirmation. Please feel free to contact us for any queries.</div>
     <div style="display:flex;justify-content:flex-end;margin-top:24px">
       <div class="doc-sign"><br><br><span style="font-weight:600">Authorized Signature</span><br><span style="color:#888">HXH Power Equipment Co., Ltd.</span><br><span style="color:#888">${fmtDate(today)}</span></div>
@@ -1295,7 +1461,7 @@ function renderPI(v) {
         &bull; Total Contract Value: <strong>${usd(v.total)}</strong>
       </div>
     </div>
-    <div class="doc-bank">
+    ${v.bankAccount?bankAccountBlock(v):`<div class="doc-bank">
       <div style="font-weight:700;font-size:10.5px;text-transform:uppercase;letter-spacing:.07em;color:#888;margin-bottom:8px">Beneficiary Bank Details — SWIFT (T/T) or CHATS (HK Local)</div>
       <div class="doc-kv">
         <span>Bank Name:</span><span>DBS Bank (Hong Kong) Limited</span>
@@ -1307,7 +1473,9 @@ function renderPI(v) {
         <span>Currency:</span><span>USD (United States Dollar)</span>
       </div>
       <div style="margin-top:8px;font-size:11px;color:#854f0b;background:#fef3e2;padding:6px 10px;border-radius:4px">⚠ Please include <strong>Buyer's Name, Invoice / Contract Number, and Product Name</strong> in the memo or reference field when making payment.</div>
-    </div>
+    </div>`}
+    ${warrantyBlock(v)}
+    ${contractTermsBlock(v)}
     <div style="display:flex;justify-content:flex-end;margin-top:24px">
       <div class="doc-sign"><br><br><span style="font-weight:600">Authorized Signature &amp; Company Chop</span><br><span style="color:#888">HXH Power Equipment Co., Ltd.</span><br><span style="color:#888">${fmtDate(today)}</span></div>
     </div>
@@ -1510,6 +1678,98 @@ function renderPackingList(v) {
   </div>`;
 }
 
+function renderSalesContract(v) {
+  const today=new Date();
+  const no=docNo('SC');
+  const seller=v.ciCompany||{name:'HXH Power Equipment Co., Ltd.',address:SELLER_ADDR,website:'hpowerpro.com'};
+  document.getElementById('quote-content').innerHTML=`<div class="doc" style="padding:8px">
+    ${lh(v.sc)}
+    <div class="doc-h1">销售合同 SALES CONTRACT</div>
+    <div style="font-size:12px;margin-bottom:14px">
+      <span style="font-weight:600">合同编号 Contract No.:</span> ${no}&nbsp;&nbsp;
+      <span style="font-weight:600">日期 Date:</span> ${fmtDate(today)}<br>
+      ${v.refPi?`<span style="font-weight:600">参考PI Ref. PI:</span> ${v.refPi}`:''}
+    </div>
+    <div class="doc-parties">
+      <div><div class="dp-lbl">卖方 Seller</div>
+        <strong>${seller.name}</strong><br>
+        <span style="font-size:10.5px;color:#555">${seller.address}${seller.website?'<br>Web: '+seller.website:''}${v.sc.name?'<br>Contact: '+v.sc.name:''}${v.sc.wa?'<br>WA: '+v.sc.wa:''}${v.sc.email?'<br>Email: '+v.sc.email:''}</span>
+      </div>
+      <div><div class="dp-lbl">买方 Buyer</div>
+        <strong>${v.company}</strong><br>
+        <span style="font-size:11.5px;color:#555">${v.address?v.address.replace(/\n/g,'<br>'):'—'}</span>
+      </div>
+    </div>
+    <div style="font-size:12px;margin:12px 0 6px;font-weight:700;border-bottom:1px solid #ccc;padding-bottom:4px">一、货物 Goods Description</div>
+    <table class="doc-tb">
+      <thead><tr><th>No.</th><th>货物描述 Description</th><th style="width:90px">HS Code</th><th style="width:45px;text-align:center">数量</th><th style="width:110px;text-align:right">单价 Unit Price</th><th style="width:115px;text-align:right">总价 Total</th></tr></thead>
+      <tbody><tr>
+        <td>1</td>
+        <td><strong>${v.item.model}</strong> — Diesel Generator Set<br>
+          <span style="font-size:11px;color:#555">${v.item.power} | ${v.item.condition} | Machine ID: ${v.item.machineId}<br>${machineSpecBlock(v.item)}</span></td>
+        <td style="font-family:monospace;font-size:11px">${v.hsCode||'8502.20.0000'}</td>
+        <td style="text-align:center">${v.qty}</td>
+        <td class="r">${v.priceMachine>0?usd(v.unitPrice):'TBD'}</td>
+        <td class="r">${v.priceMachine>0?usd(v.priceMachine):'TBD'}</td>
+      </tr></tbody>
+    </table>
+    <div class="doc-totals">
+      ${v.priceMachine>0?`<div class="dtr"><span>Machine Price</span><span>${usd(v.priceMachine)}</span></div>`:''}
+      ${v.priceFreight>0?`<div class="dtr"><span>Freight</span><span>${usd(v.priceFreight)}</span></div>`:''}
+      ${v.priceInsurance>0?`<div class="dtr"><span>Insurance</span><span>${usd(v.priceInsurance)}</span></div>`:''}
+      ${v.otherAmt>0&&v.otherName?`<div class="dtr"><span>${v.otherName}</span><span>${usd(v.otherAmt)}</span></div>`:''}
+      <div class="dtr final"><span>${v.inco} CONTRACT VALUE</span><span>${usd(v.total)}</span></div>
+    </div>
+    <div style="clear:both">
+    <div style="font-size:12px;margin:14px 0 6px;font-weight:700;border-bottom:1px solid #ccc;padding-bottom:4px">二、价格条款 Price Terms</div>
+    <div style="font-size:11.5px" class="doc-kv">
+      <span>贸易条款 Incoterms:</span><span>${v.inco} ${v.port} (Incoterms® 2020)</span>
+      <span>装运港 Port of Loading:</span><span>${v.loading}</span>
+      <span>目的港 Port of Destination:</span><span>${v.port}</span>
+      <span>原产国 Country of Origin:</span><span>China (P.R.C.)</span>
+    </div>
+    <div style="font-size:12px;margin:12px 0 6px;font-weight:700;border-bottom:1px solid #ccc;padding-bottom:4px">三、付款条款 Payment Terms</div>
+    <div style="font-size:11.5px" class="doc-kv">
+      <span>付款方式:</span><span>T/T (Telegraphic Transfer)</span>
+      <span>定金 Deposit:</span><span>${usd(v.deposit)} (30% of contract value), due within 5 business days of contract signing</span>
+      <span>尾款 Balance:</span><span>${usd(v.balance)} (70% of contract value), due before B/L release</span>
+      <span>银行手续费:</span><span>${v.bankCharges||'SHA'} — each party bears charges from their respective bank</span>
+    </div>
+    ${v.bankAccount?bankAccountBlock(v):''}
+    <div style="font-size:12px;margin:12px 0 6px;font-weight:700;border-bottom:1px solid #ccc;padding-bottom:4px">四、交货条款 Delivery Terms</div>
+    <div style="font-size:11.5px" class="doc-kv">
+      <span>交货期:</span><span>${v.deliveryTime||'As agreed'}</span>
+      ${v.pickupMethod?`<span>提货方式:</span><span>${v.pickupMethod}</span>`:''}
+      ${v.pickupAddr?`<span>提货地址:</span><span>${v.pickupAddr}</span>`:''}
+    </div>
+    <div style="font-size:12px;margin:12px 0 6px;font-weight:700;border-bottom:1px solid #ccc;padding-bottom:4px">五、质保条款 Warranty</div>
+    ${warrantyBlock(v)}
+    <div style="font-size:12px;margin:12px 0 6px;font-weight:700;border-bottom:1px solid #ccc;padding-bottom:4px">六、其他条款 Other Terms</div>
+    <div style="font-size:11.5px" class="doc-kv">
+      ${v.termInspection?`<span>检验 Inspection:</span><span>${v.termInspection}</span>`:''}
+      ${v.termInsurance?`<span>保险 Insurance:</span><span>${v.termInsurance}</span>`:''}
+      ${v.termForce?`<span>不可抗力 Force Majeure:</span><span>${v.termForce}</span>`:''}
+      ${v.termDispute?`<span>争议解决 Dispute Resolution:</span><span>${v.termDispute}</span>`:''}
+    </div>
+    <div style="font-size:12px;margin:12px 0 6px;font-weight:700;border-bottom:1px solid #ccc;padding-bottom:4px">七、签字盖章 Signatures</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:40px;margin-top:12px">
+      <div>
+        <div style="font-weight:600;font-size:12px;margin-bottom:4px">卖方 Seller:</div>
+        <div class="doc-cert" style="height:80px"></div>
+        <div style="font-size:11px;margin-top:4px">${seller.name}<br>Authorized Signature &amp; Company Chop</div>
+        <div style="font-size:11px;margin-top:8px">Date 日期: ___________________</div>
+      </div>
+      <div>
+        <div style="font-weight:600;font-size:12px;margin-bottom:4px">买方 Buyer:</div>
+        <div class="doc-cert" style="height:80px"></div>
+        <div style="font-size:11px;margin-top:4px">${v.company}<br>Authorized Signature &amp; Company Chop</div>
+        <div style="font-size:11px;margin-top:8px">Date 日期: ___________________</div>
+      </div>
+    </div>
+    </div>
+  </div>`;
+}
+
 // ── 订单追踪 ─────────────────────────────────────────────────
 const ORDER_STAGES=['已发PI','已确认','已收定金','已收尾款','已出货','已到港'];
 const ORDER_STAGE_COLOR={
@@ -1649,6 +1909,10 @@ function openOrderDetail(id) {
               <span style="font-weight:600">预计到港 ETA:</span><span>${ship.eta||'—'}</span>
               <span style="font-weight:600">实际到港 ATA:</span><span>${ship.ata||'—'}</span>
               <span style="font-weight:600">清关状态:</span><span>${ship.clearance||'—'}</span>
+              ${ship.shippingLine?`<span style="font-weight:600">船公司:</span><span>${ship.shippingLine}</span>`:''}
+              ${ship.voyageNo?`<span style="font-weight:600">航次号:</span><span>${ship.voyageNo}</span>`:''}
+              ${ship.customsBroker?`<span style="font-weight:600">报关行:</span><span>${ship.customsBroker}</span>`:''}
+              ${ship.declarationStatus&&ship.declarationStatus!=='—'?`<span style="font-weight:600">报关状态:</span><span>${ship.declarationStatus}</span>`:''}
             </div>
             <button class="btn btn-sm" style="margin-top:8px" onclick="openShipmentEdit(${id})"><i class="ti ti-edit"></i> 编辑出货信息</button>
           </div>
@@ -1740,6 +2004,21 @@ function openShipmentEdit(id) {
             </div>
           </div>
           <div class="fg"><label>船公司 / 航次</label><input type="text" id="sh-vessel" value="${s.vessel||''}" placeholder="e.g. EVERGREEN / 0126E"></div>
+          <div class="fgrid">
+            <div class="fg"><label>船公司 Shipping Line</label><input type="text" id="sh-shipping-line" value="${s.shippingLine||''}" placeholder="e.g. EVERGREEN, COSCO, ONE"></div>
+            <div class="fg"><label>航次号 Voyage No.</label><input type="text" id="sh-voyage-no" value="${s.voyageNo||''}" placeholder="e.g. 0126E"></div>
+          </div>
+          <div class="fgrid">
+            <div class="fg"><label>报关行 Customs Broker</label><input type="text" id="sh-customs-broker" value="${s.customsBroker||''}" placeholder="报关行公司名"></div>
+            <div class="fg"><label>报关状态 Declaration Status</label>
+              <select id="sh-decl-status">
+                <option${!s.declarationStatus?' selected':''}>—</option>
+                <option${s.declarationStatus==='待报关'?' selected':''}>待报关</option>
+                <option${s.declarationStatus==='已报关'?' selected':''}>已报关</option>
+                <option${s.declarationStatus==='已放行'?' selected':''}>已放行</option>
+              </select>
+            </div>
+          </div>
         </div>
         <div class="mfoot">
           <button class="btn" onclick="closeModal()">取消</button>
@@ -1757,7 +2036,11 @@ function saveShipment(id) {
     eta:document.getElementById('sh-eta').value,
     ata:document.getElementById('sh-ata').value,
     clearance:document.getElementById('sh-clear').value,
-    vessel:document.getElementById('sh-vessel').value.trim()
+    vessel:document.getElementById('sh-vessel').value.trim(),
+    shippingLine:document.getElementById('sh-shipping-line')?.value.trim()||'',
+    voyageNo:document.getElementById('sh-voyage-no')?.value.trim()||'',
+    customsBroker:document.getElementById('sh-customs-broker')?.value.trim()||'',
+    declarationStatus:document.getElementById('sh-decl-status')?.value||'—'
   };
   const ata=o.shipment.ata;
   if(ata) o.status='已到港';
@@ -1804,6 +2087,27 @@ function openSettings() {
             <button class="btn btn-primary btn-sm" onclick="addCompany()"><i class="ti ti-plus"></i> 添加</button>
           </div>
         </div>
+        <!-- 收款账户 -->
+        <div style="border-top:2px solid var(--bdr);padding-top:16px;margin-top:16px;font-size:13px;font-weight:700;color:var(--t1);margin-bottom:12px">🏦 收款账户管理</div>
+        <div id="ba-list">${_bankRows()}</div>
+        <div style="border-top:1px solid var(--bdr);padding-top:14px;margin-top:4px">
+          <div style="font-size:12px;font-weight:600;color:var(--t2);margin-bottom:10px">新增收款账户</div>
+          <div class="fcol">
+            <div class="fg"><label>账户名称 *</label><input type="text" id="nba-name" placeholder="e.g. HXH Power Equipment Co., Ltd."></div>
+            <div class="fgrid">
+              <div class="fg"><label>银行名称</label><input type="text" id="nba-bank" placeholder="DBS Bank (Hong Kong) Limited"></div>
+              <div class="fg"><label>账号</label><input type="text" id="nba-account" placeholder="账号"></div>
+            </div>
+            <div class="fgrid">
+              <div class="fg"><label>SWIFT Code</label><input type="text" id="nba-swift" placeholder="DHBKHKHH"></div>
+              <div class="fg"><label>币种</label><input type="text" id="nba-currency" placeholder="USD"></div>
+            </div>
+            <div class="fg"><label>备注</label><input type="text" id="nba-notes" placeholder="Branch code, address..."></div>
+          </div>
+          <div style="text-align:right;margin-top:8px">
+            <button class="btn btn-primary btn-sm" onclick="addBankAccount()"><i class="ti ti-plus"></i> 添加</button>
+          </div>
+        </div>
         <div class="mfoot"><button class="btn btn-primary" onclick="closeModal()">完成</button></div>
       </div>
     </div>`;
@@ -1831,9 +2135,48 @@ function _coRows() {
       <button class="btn btn-sm btn-ghost btn-danger" onclick="deleteCompany(${c.id})" ${state.companies.length<=1?'disabled':''} title="删除"><i class="ti ti-trash"></i></button>
     </div>`).join('');
 }
+function _bankRows() {
+  return (state.bankAccounts||[]).map(a=>`
+    <div style="border:1px solid var(--bdr);border-radius:8px;padding:10px 12px;margin-bottom:8px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+        <div style="font-weight:600;font-size:13px">${a.name}</div>
+        <button class="btn btn-sm btn-ghost btn-danger" onclick="deleteBankAccount(${a.id})"><i class="ti ti-trash"></i></button>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
+        <input type="text" value="${a.bank||''}" placeholder="银行名称" style="font-size:12px;padding:4px 8px;border:1px solid var(--bdr);border-radius:4px" onchange="saveBankField(${a.id},'bank',this.value)">
+        <input type="text" value="${a.account||''}" placeholder="账号" style="font-size:12px;padding:4px 8px;border:1px solid var(--bdr);border-radius:4px" onchange="saveBankField(${a.id},'account',this.value)">
+        <input type="text" value="${a.swift||''}" placeholder="SWIFT Code" style="font-size:12px;padding:4px 8px;border:1px solid var(--bdr);border-radius:4px" onchange="saveBankField(${a.id},'swift',this.value)">
+        <input type="text" value="${a.currency||''}" placeholder="币种 USD" style="font-size:12px;padding:4px 8px;border:1px solid var(--bdr);border-radius:4px" onchange="saveBankField(${a.id},'currency',this.value)">
+        <input type="text" value="${a.notes||''}" placeholder="备注" style="font-size:12px;padding:4px 8px;border:1px solid var(--bdr);border-radius:4px;grid-column:span 2" onchange="saveBankField(${a.id},'notes',this.value)">
+      </div>
+    </div>`).join('');
+}
+function saveBankField(id,field,val){
+  const a=(state.bankAccounts||[]).find(x=>x.id===id);if(a){a[field]=val;saveState();}
+}
+function deleteBankAccount(id){
+  if(!confirm('确认删除此收款账户？'))return;
+  state.bankAccounts=state.bankAccounts.filter(a=>a.id!==id);
+  saveState();_refreshSettingsLists();
+}
+function addBankAccount(){
+  const name=document.getElementById('nba-name').value.trim();
+  if(!name){alert('账户名为必填');return;}
+  if(!state.bankAccounts)state.bankAccounts=[];
+  state.bankAccounts.push({
+    id:state.nextBankAccountId++,name,
+    bank:document.getElementById('nba-bank').value.trim(),
+    account:document.getElementById('nba-account').value.trim(),
+    swift:document.getElementById('nba-swift').value.trim(),
+    currency:document.getElementById('nba-currency').value.trim()||'USD',
+    notes:document.getElementById('nba-notes').value.trim()
+  });
+  saveState();_refreshSettingsLists();
+}
 function _refreshSettingsLists() {
   const wl=document.getElementById('wh-list');if(wl)wl.innerHTML=_whRows();
   const cl=document.getElementById('co-list');if(cl)cl.innerHTML=_coRows();
+  const bl=document.getElementById('ba-list');if(bl)bl.innerHTML=_bankRows();
 }
 function addWarehouse() {
   const name=document.getElementById('nwh-name').value.trim();
@@ -1991,11 +2334,106 @@ function openSalesHistory(id) {
     </div>`;
 }
 
+function openBargainLog(id) {
+  const l=state.leads.find(x=>x.id===id);if(!l)return;
+  if(!l.bargainLog) l.bargainLog=[];
+  document.getElementById('modal-container').innerHTML=`
+    <div class="moverlay" onclick="if(event.target===this)closeModal()">
+      <div class="modal" style="width:520px">
+        <div class="mhdr"><span class="mt">砍价记录 — ${l.company}</span><button class="mx" onclick="closeModal()">×</button></div>
+        <div style="margin-bottom:14px">
+          ${l.bargainLog.length?`<table style="font-size:12px;width:100%;border-collapse:collapse">
+            <thead><tr style="background:var(--bg2)">
+              <th style="padding:6px 10px;text-align:left;font-size:10px;font-weight:700;text-transform:uppercase;color:var(--t3)">日期</th>
+              <th style="padding:6px 10px;text-align:left;font-size:10px;font-weight:700;text-transform:uppercase;color:var(--t3)">客户报价</th>
+              <th style="padding:6px 10px;text-align:left;font-size:10px;font-weight:700;text-transform:uppercase;color:var(--t3)">我方回复</th>
+              <th style="padding:6px 10px;text-align:left;font-size:10px;font-weight:700;text-transform:uppercase;color:var(--t3)">备注</th>
+            </tr></thead>
+            <tbody>${l.bargainLog.map(b=>`<tr style="border-bottom:1px solid var(--bdr)">
+              <td style="padding:7px 10px;color:var(--t2)">${b.date}</td>
+              <td style="padding:7px 10px;font-family:monospace">${b.buyerOffer?'$'+Number(b.buyerOffer).toLocaleString():'—'}</td>
+              <td style="padding:7px 10px;font-family:monospace">${b.ourCounter?'$'+Number(b.ourCounter).toLocaleString():'—'}</td>
+              <td style="padding:7px 10px;color:var(--t2);font-size:11px">${b.notes||'—'}</td>
+            </tr>`).join('')}</tbody>
+          </table>`:'<div class="empty" style="margin-bottom:12px">暂无砍价记录</div>'}
+        </div>
+        <div style="border-top:1px solid var(--bdr);padding-top:12px">
+          <div style="font-size:12px;font-weight:600;color:var(--t2);margin-bottom:8px">新增砍价记录</div>
+          <div class="fgrid">
+            <div class="fg"><label>客户报价 USD</label><input type="number" id="bl-buyer" placeholder="50000"></div>
+            <div class="fg"><label>我方回复 USD</label><input type="number" id="bl-counter" placeholder="68000"></div>
+          </div>
+          <div class="fg"><label>备注</label><input type="text" id="bl-notes" placeholder="客户说太贵了..."></div>
+        </div>
+        <div class="mfoot">
+          <button class="btn" onclick="closeModal()">关闭</button>
+          <button class="btn btn-primary" onclick="saveBargainLog(${id})">保存</button>
+        </div>
+      </div>
+    </div>`;
+}
+function saveBargainLog(id) {
+  const l=state.leads.find(x=>x.id===id);if(!l)return;
+  if(!l.bargainLog) l.bargainLog=[];
+  const buyer=parseFloat(document.getElementById('bl-buyer')?.value)||0;
+  const counter=parseFloat(document.getElementById('bl-counter')?.value)||0;
+  const notes=document.getElementById('bl-notes')?.value.trim()||'';
+  if(!buyer&&!counter){alert('请至少填写客户报价或我方回复');return;}
+  l.bargainLog.push({date:new Date().toISOString().split('T')[0],buyerOffer:buyer,ourCounter:counter,notes});
+  saveState();openBargainLog(id);
+}
+function openVisitLog(id) {
+  const l=state.leads.find(x=>x.id===id);if(!l)return;
+  if(!l.visitLog) l.visitLog=[];
+  document.getElementById('modal-container').innerHTML=`
+    <div class="moverlay" onclick="if(event.target===this)closeModal()">
+      <div class="modal" style="width:520px">
+        <div class="mhdr"><span class="mt">拜访记录 — ${l.company}</span><button class="mx" onclick="closeModal()">×</button></div>
+        <div style="margin-bottom:14px">
+          ${l.visitLog.length?`<div style="font-size:12px">${l.visitLog.map(v=>`
+            <div style="border:1px solid var(--bdr);border-radius:6px;padding:10px 12px;margin-bottom:8px">
+              <div style="display:flex;justify-content:space-between"><span style="font-weight:600">${v.date}</span><span class="badge badge-new">${v.method||'拜访'}</span></div>
+              <div style="margin-top:6px;color:var(--t2);font-size:11.5px">${v.summary}</div>
+              ${v.nextAction?`<div style="margin-top:4px;font-size:11px;color:var(--acc)">→ 下一步：${v.nextAction}</div>`:''}
+            </div>`).join('')}</div>`:'<div class="empty" style="margin-bottom:12px">暂无拜访记录</div>'}
+        </div>
+        <div style="border-top:1px solid var(--bdr);padding-top:12px">
+          <div style="font-size:12px;font-weight:600;color:var(--t2);margin-bottom:8px">新增拜访记录</div>
+          <div class="fgrid">
+            <div class="fg"><label>日期</label><input type="date" id="vl-date" value="${new Date().toISOString().split('T')[0]}"></div>
+            <div class="fg"><label>方式</label>
+              <select id="vl-method"><option>WhatsApp</option><option>Email</option><option>电话</option><option>视频会议</option><option>当面拜访</option></select>
+            </div>
+          </div>
+          <div class="fg"><label>沟通摘要</label><textarea id="vl-summary" rows="2" placeholder="主要讨论内容..."></textarea></div>
+          <div class="fg"><label>下一步行动</label><input type="text" id="vl-next" placeholder="e.g. 发PI，等待客户确认"></div>
+        </div>
+        <div class="mfoot">
+          <button class="btn" onclick="closeModal()">关闭</button>
+          <button class="btn btn-primary" onclick="saveVisitLog(${id})">保存</button>
+        </div>
+      </div>
+    </div>`;
+}
+function saveVisitLog(id) {
+  const l=state.leads.find(x=>x.id===id);if(!l)return;
+  if(!l.visitLog) l.visitLog=[];
+  const summary=document.getElementById('vl-summary')?.value.trim()||'';
+  if(!summary){alert('请填写沟通摘要');return;}
+  l.visitLog.push({
+    date:document.getElementById('vl-date')?.value||new Date().toISOString().split('T')[0],
+    method:document.getElementById('vl-method')?.value||'拜访',
+    summary,
+    nextAction:document.getElementById('vl-next')?.value.trim()||''
+  });
+  saveState();openVisitLog(id);
+}
+
 // ── 报价记录 ─────────────────────────────────────────────────
 const Q_STATUS_BADGE={
   '已发送':'badge-new','已接受':'badge-won','已拒绝':'badge-lost'
 };
-const Q_TYPE_LABEL={quote:'初始报价 Initial Quote',pi:'形式发票 Proforma Invoice',deposit:'定金形式发票 Deposit PI',ci:'商业发票 Commercial Invoice',pl:'装箱单 Packing List'};
+const Q_TYPE_LABEL={quote:'初始报价 Initial Quote',pi:'形式发票 Proforma Invoice',deposit:'定金形式发票 Deposit PI',ci:'商业发票 Commercial Invoice',pl:'装箱单 Packing List',sc:'销售合同 Sales Contract'};
 
 function renderQuoteHistory() {
   const qs=state.quotes||[];
@@ -2048,7 +2486,7 @@ function reuseQuote(id) {
     const sel=document.getElementById('q-model');
     if(sel){sel.value=q.machineId||'';if(!sel.value){populateModelSelect();sel.value=q.machineId||'';}}
     // 切换单证类型
-    const dtypeMap={quote:0,pi:1,deposit:2,ci:3};
+    const dtypeMap={quote:0,pi:1,deposit:2,ci:3,pl:4,sc:5};
     const dtabs=document.querySelectorAll('.dtab');
     if(dtabs[dtypeMap[q.docType]]) dtabs[dtypeMap[q.docType]].click();
     updateQuote();
@@ -2170,6 +2608,44 @@ function openAddLead() {
             <div class="fg"><label>下次跟进</label><input type="date" id="nl-followup" value="${new Date(Date.now()+3*86400000).toISOString().split('T')[0]}"></div>
           </div>
           <div class="fg"><label>备注</label><textarea id="nl-notes" rows="2" placeholder="初次对话内容..."></textarea></div>
+          <!-- 新增字段 -->
+          <div style="border-top:1px solid var(--bdr);padding-top:10px">
+            <div style="font-size:11px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">客户画像</div>
+            <div class="fgrid">
+              <div class="fg"><label>客户分级</label>
+                <select id="nl-rating">
+                  <option value="">未评级</option>
+                  <option value="A">A 级（高意向）</option>
+                  <option value="B">B 级（中等）</option>
+                  <option value="C">C 级（低意向）</option>
+                </select>
+              </div>
+              <div class="fg"><label>时区</label>
+                <select id="nl-timezone">
+                  <option value="">未知</option>
+                  <option value="UTC+8">UTC+8（中国/菲律宾/马来）</option>
+                  <option value="UTC+1">UTC+1（尼日利亚/西非/欧洲中部）</option>
+                  <option value="UTC+3">UTC+3（沙特/肯尼亚/东非）</option>
+                  <option value="UTC+4">UTC+4（迪拜/UAE）</option>
+                  <option value="UTC+5">UTC+5（巴基斯坦）</option>
+                  <option value="UTC-5">UTC-5（美国东部）</option>
+                  <option value="UTC-8">UTC-8（美国西部）</option>
+                  <option value="UTC+0">UTC+0（加纳/英国）</option>
+                </select>
+              </div>
+            </div>
+            <div class="fg"><label>进口限制 / 合规要求</label>
+              <textarea id="nl-import-restrictions" rows="2" placeholder="e.g. 需SON认证、进口许可证..."></textarea>
+              <div style="margin-top:4px;display:flex;gap:6px;flex-wrap:wrap">
+                <button type="button" class="btn btn-sm btn-ghost" onclick="document.getElementById('nl-import-restrictions').value='需SON认证（尼日利亚标准局）；柴油发电机组需提供符合性声明'">🇳🇬 Nigeria</button>
+                <button type="button" class="btn btn-sm btn-ghost" onclick="document.getElementById('nl-import-restrictions').value='需SASO认证（沙特标准局）；进口许可证由买方负责申请'">🇸🇦 Saudi</button>
+                <button type="button" class="btn btn-sm btn-ghost" onclick="document.getElementById('nl-import-restrictions').value='需BPS认证（菲律宾标准局）；发电机组归类HS 8502需IEC合规'">🇵🇭 Philippines</button>
+              </div>
+            </div>
+            <div class="fg"><label>结构化需求（功率/品牌/数量/预算）</label>
+              <textarea id="nl-customer-needs" rows="2" placeholder="e.g. 500-1000kW Cummins x3，预算$300k，FOB价接受"></textarea>
+            </div>
+          </div>
           ${opSelect('nl')}
         </div>
         <div class="mfoot">
@@ -2213,6 +2689,39 @@ function editLead(id) {
           </div>
           <div class="fg"><label>下次跟进</label><input type="date" id="el-followup" value="${l.nextFollowup}"></div>
           <div class="fg"><label>备注</label><textarea id="el-notes" rows="2">${l.notes||''}</textarea></div>
+          <!-- 新增字段 -->
+          <div style="border-top:1px solid var(--bdr);padding-top:10px">
+            <div style="font-size:11px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">客户画像</div>
+            <div class="fgrid">
+              <div class="fg"><label>客户分级</label>
+                <select id="el-rating">
+                  <option value="" ${!l.rating?'selected':''}>未评级</option>
+                  <option value="A" ${l.rating==='A'?'selected':''}>A 级（高意向）</option>
+                  <option value="B" ${l.rating==='B'?'selected':''}>B 级（中等）</option>
+                  <option value="C" ${l.rating==='C'?'selected':''}>C 级（低意向）</option>
+                </select>
+              </div>
+              <div class="fg"><label>时区</label>
+                <select id="el-timezone">
+                  <option value="" ${!l.timezone?'selected':''}>未知</option>
+                  <option value="UTC+8" ${l.timezone==='UTC+8'?'selected':''}>UTC+8（中国/菲律宾/马来）</option>
+                  <option value="UTC+1" ${l.timezone==='UTC+1'?'selected':''}>UTC+1（尼日利亚/西非/欧洲中部）</option>
+                  <option value="UTC+3" ${l.timezone==='UTC+3'?'selected':''}>UTC+3（沙特/肯尼亚/东非）</option>
+                  <option value="UTC+4" ${l.timezone==='UTC+4'?'selected':''}>UTC+4（迪拜/UAE）</option>
+                  <option value="UTC+5" ${l.timezone==='UTC+5'?'selected':''}>UTC+5（巴基斯坦）</option>
+                  <option value="UTC-5" ${l.timezone==='UTC-5'?'selected':''}>UTC-5（美国东部）</option>
+                  <option value="UTC-8" ${l.timezone==='UTC-8'?'selected':''}>UTC-8（美国西部）</option>
+                  <option value="UTC+0" ${l.timezone==='UTC+0'?'selected':''}>UTC+0（加纳/英国）</option>
+                </select>
+              </div>
+            </div>
+            <div class="fg"><label>进口限制 / 合规要求</label>
+              <textarea id="el-import-restrictions" rows="2" placeholder="e.g. 需SON认证...">${l.importRestrictions||''}</textarea>
+            </div>
+            <div class="fg"><label>结构化需求（功率/品牌/数量/预算）</label>
+              <textarea id="el-customer-needs" rows="2" placeholder="e.g. 500-1000kW Cummins x3，预算$300k，FOB价接受">${l.customerNeeds||''}</textarea>
+            </div>
+          </div>
           ${opSelect('el')}
         </div>
         <div class="mfoot">
@@ -2235,6 +2744,10 @@ function saveLead() {
     wa:document.getElementById('nl-wa').value.trim(),
     email:document.getElementById('nl-email').value.trim(),
     linkedin:document.getElementById('nl-linkedin').value.trim(),
+    rating:document.getElementById('nl-rating')?.value||'',
+    timezone:document.getElementById('nl-timezone')?.value||'',
+    importRestrictions:document.getElementById('nl-import-restrictions')?.value.trim()||'',
+    customerNeeds:document.getElementById('nl-customer-needs')?.value.trim()||'',
     created:new Date().toISOString().split('T')[0]});
   addActivity(`新增线索：${c} (${co})`,'system',op);saveState();closeModal();render();
 }
@@ -2251,6 +2764,10 @@ function saveEditLead(id) {
   l.wa=document.getElementById('el-wa').value.trim();
   l.email=document.getElementById('el-email').value.trim();
   l.linkedin=document.getElementById('el-linkedin').value.trim();
+  l.rating=document.getElementById('el-rating')?.value||l.rating||'';
+  l.timezone=document.getElementById('el-timezone')?.value||l.timezone||'';
+  l.importRestrictions=document.getElementById('el-import-restrictions')?.value.trim()||l.importRestrictions||'';
+  l.customerNeeds=document.getElementById('el-customer-needs')?.value.trim()||l.customerNeeds||'';
   addActivity(`更新线索：${l.company}`,'system',getOp('el'));saveState();closeModal();render();
 }
 
@@ -2437,6 +2954,12 @@ function getWarehouse(selId, inputId) {
   return sel.value;
 }
 
+function toggleDgFields(prefix) {
+  const checked=document.getElementById(`${prefix}-is-dg`)?.checked;
+  const el=document.getElementById(`${prefix}-dg-detail`);
+  if(el) el.style.display=checked?'':'none';
+}
+
 function openAddStock() {
   const autoId='HXH-'+new Date().getFullYear()+'-'+String(state.nextMachineSeq||1).padStart(3,'0');
   _pendingImage = null; _pendingImages = [];
@@ -2484,6 +3007,40 @@ function openAddStock() {
               ${warehouseOptions()}
             </select>
             <input type="text" id="ns-warehouse-custom" placeholder="填写仓库名称" style="display:none;margin-top:6px">
+          </div>
+          <!-- 序列号 -->
+          <div style="border-top:1px solid var(--bdr);padding-top:10px;margin-top:4px">
+            <div style="font-size:11px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">序列号 Serial Numbers</div>
+            <div class="fgrid">
+              <div class="fg"><label>发动机序列号 Engine S/N</label><input type="text" id="ns-engine-sn" placeholder="e.g. 72345678"></div>
+              <div class="fg"><label>发电机序列号 Alternator S/N</label><input type="text" id="ns-alt-sn" placeholder="e.g. SG-89012"></div>
+            </div>
+          </div>
+          <!-- 危险品信息 -->
+          <div style="border-top:1px solid var(--bdr);padding-top:10px;margin-top:4px">
+            <div style="font-size:11px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">危险品 Dangerous Goods</div>
+            <label style="display:flex;align-items:center;gap:8px;font-size:12px;cursor:pointer">
+              <input type="checkbox" id="ns-is-dg" onchange="toggleDgFields('ns')">
+              <span>此货物属于危险品（DG）</span>
+            </label>
+            <div id="ns-dg-detail" style="display:none;margin-top:8px">
+              <div class="fgrid">
+                <div class="fg"><label>UN No.</label><input type="text" id="ns-un-no" placeholder="e.g. UN1202"></div>
+                <div class="fg"><label>DG Class</label><input type="text" id="ns-dg-class" placeholder="e.g. Class 3 — Flammable Liquid"></div>
+              </div>
+            </div>
+          </div>
+          <!-- 成本核算（内部） -->
+          <div style="border-top:1px solid var(--bdr);padding-top:10px;margin-top:4px;background:#fff8e1;border-radius:6px;padding:10px 12px">
+            <div style="font-size:11px;font-weight:700;color:#854f0b;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">成本核算（内部，不出单据）</div>
+            <div class="fgrid">
+              <div class="fg"><label>采购成本 Purchase Cost (USD)</label><input type="number" id="ns-purchase-cost" placeholder="0"></div>
+              <div class="fg"><label>翻新成本 Refurbish Cost (USD)</label><input type="number" id="ns-refurbish-cost" placeholder="0"></div>
+            </div>
+            <div class="fgrid">
+              <div class="fg"><label>仓储成本 Storage Cost (USD)</label><input type="number" id="ns-storage-cost" placeholder="0"></div>
+              <div class="fg"><label>预期利润 Expected Profit (USD)</label><input type="number" id="ns-expected-profit" placeholder="0"></div>
+            </div>
           </div>
           ${_multiImgHtml('ns')}
           ${_exportHtml('ns')}
@@ -2564,6 +3121,40 @@ function editStock(id) {
               value="${isCustomWh?i.warehouse:''}"
               style="display:${isCustomWh?'':'none'};margin-top:6px">
           </div>
+          <!-- 序列号 -->
+          <div style="border-top:1px solid var(--bdr);padding-top:10px;margin-top:4px">
+            <div style="font-size:11px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">序列号 Serial Numbers</div>
+            <div class="fgrid">
+              <div class="fg"><label>发动机序列号 Engine S/N</label><input type="text" id="es-engine-sn" value="${i.engineSN||''}" placeholder="e.g. 72345678"></div>
+              <div class="fg"><label>发电机序列号 Alternator S/N</label><input type="text" id="es-alt-sn" value="${i.altSN||''}" placeholder="e.g. SG-89012"></div>
+            </div>
+          </div>
+          <!-- 危险品信息 -->
+          <div style="border-top:1px solid var(--bdr);padding-top:10px;margin-top:4px">
+            <div style="font-size:11px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">危险品 Dangerous Goods</div>
+            <label style="display:flex;align-items:center;gap:8px;font-size:12px;cursor:pointer">
+              <input type="checkbox" id="es-is-dg" onchange="toggleDgFields('es')"${i.isDG?' checked':''}>
+              <span>此货物属于危险品（DG）</span>
+            </label>
+            <div id="es-dg-detail" style="display:${i.isDG?'':'none'};margin-top:8px">
+              <div class="fgrid">
+                <div class="fg"><label>UN No.</label><input type="text" id="es-un-no" value="${i.unNo||''}" placeholder="e.g. UN1202"></div>
+                <div class="fg"><label>DG Class</label><input type="text" id="es-dg-class" value="${i.dgClass||''}" placeholder="e.g. Class 3 — Flammable Liquid"></div>
+              </div>
+            </div>
+          </div>
+          <!-- 成本核算（内部） -->
+          <div style="border-top:1px solid var(--bdr);padding-top:10px;margin-top:4px;background:#fff8e1;border-radius:6px;padding:10px 12px">
+            <div style="font-size:11px;font-weight:700;color:#854f0b;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">成本核算（内部，不出单据）</div>
+            <div class="fgrid">
+              <div class="fg"><label>采购成本 Purchase Cost (USD)</label><input type="number" id="es-purchase-cost" value="${i.purchaseCost||''}" placeholder="0"></div>
+              <div class="fg"><label>翻新成本 Refurbish Cost (USD)</label><input type="number" id="es-refurbish-cost" value="${i.refurbishCost||''}" placeholder="0"></div>
+            </div>
+            <div class="fgrid">
+              <div class="fg"><label>仓储成本 Storage Cost (USD)</label><input type="number" id="es-storage-cost" value="${i.storageCost||''}" placeholder="0"></div>
+              <div class="fg"><label>预期利润 Expected Profit (USD)</label><input type="number" id="es-expected-profit" value="${i.expectedProfit||''}" placeholder="0"></div>
+            </div>
+          </div>
           ${_multiImgHtml('es',_pendingImages)}
           ${_exportHtml('es',i.exportData||{})}
           ${opSelect('es')}
@@ -2604,6 +3195,15 @@ function saveStock() {
     image:_pendingImages[0]?.url||_pendingImage||'',
     images:[..._pendingImages],
     exportData:_readExportFields('ns'),
+    engineSN:document.getElementById('ns-engine-sn')?.value.trim()||'',
+    altSN:document.getElementById('ns-alt-sn')?.value.trim()||'',
+    isDG:document.getElementById('ns-is-dg')?.checked||false,
+    unNo:document.getElementById('ns-un-no')?.value.trim()||'',
+    dgClass:document.getElementById('ns-dg-class')?.value.trim()||'',
+    purchaseCost:parseFloat(document.getElementById('ns-purchase-cost')?.value)||0,
+    refurbishCost:parseFloat(document.getElementById('ns-refurbish-cost')?.value)||0,
+    storageCost:parseFloat(document.getElementById('ns-storage-cost')?.value)||0,
+    expectedProfit:parseFloat(document.getElementById('ns-expected-profit')?.value)||0,
     salesLog:[]
   });
   _pendingImage=null;_pendingImages=[];
@@ -2631,6 +3231,15 @@ function saveEditStock(id) {
   i.images=[..._pendingImages];
   i.image=_pendingImages[0]?.url||i.image||'';
   i.exportData=_readExportFields('es');
+  i.engineSN=document.getElementById('es-engine-sn')?.value.trim()||i.engineSN||'';
+  i.altSN=document.getElementById('es-alt-sn')?.value.trim()||i.altSN||'';
+  i.isDG=document.getElementById('es-is-dg')?.checked||false;
+  i.unNo=document.getElementById('es-un-no')?.value.trim()||'';
+  i.dgClass=document.getElementById('es-dg-class')?.value.trim()||'';
+  i.purchaseCost=parseFloat(document.getElementById('es-purchase-cost')?.value)||i.purchaseCost||0;
+  i.refurbishCost=parseFloat(document.getElementById('es-refurbish-cost')?.value)||i.refurbishCost||0;
+  i.storageCost=parseFloat(document.getElementById('es-storage-cost')?.value)||i.storageCost||0;
+  i.expectedProfit=parseFloat(document.getElementById('es-expected-profit')?.value)||i.expectedProfit||0;
   _pendingImage=null;_pendingImages=[];
   addActivity(`更新库存：${i.machineId} ${i.model}`,'system',getOp('es'));
   saveState();closeModal();render();
