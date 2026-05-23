@@ -159,60 +159,8 @@ label{font-size:12px;font-weight:500;color:var(--t2);margin-bottom:4px;display:b
 </head>
 <body>
 
-<!-- Firebase 登录 -->
-<div id="auth-overlay" style="position:fixed;inset:0;background:#f5f4f0;display:flex;align-items:center;justify-content:center;z-index:9999">
-  <div style="background:#fff;border-radius:16px;padding:40px 48px;box-shadow:0 8px 32px rgba(0,0,0,.12);width:380px;max-width:92vw;text-align:center;border:1px solid #e4e1db">
-    <div style="width:52px;height:52px;background:#c0392b;border-radius:12px;display:flex;align-items:center;justify-content:center;margin:0 auto 16px;font-size:24px">🔒</div>
-    <h1 style="font-size:20px;font-weight:700;color:#1c1b18;margin-bottom:6px">HXH Power 销售系统</h1>
-    <p style="font-size:13px;color:#6b6866;margin-bottom:24px">请登录继续</p>
-    <input id="auth-email" type="email" placeholder="邮箱地址" autocomplete="email"
-      style="width:100%;padding:10px 14px;font-size:14px;border:1.5px solid #ccc8c1;border-radius:8px;outline:none;margin-bottom:12px;font-family:inherit;transition:border-color .2s"
-      onkeydown="if(event.key==='Enter')document.getElementById('auth-password').focus()"
-      onfocus="this.style.borderColor='#c0392b';this.style.boxShadow='0 0 0 3px rgba(192,57,43,.1)'"
-      onblur="this.style.borderColor='#ccc8c1';this.style.boxShadow='none'">
-    <input id="auth-password" type="password" placeholder="密码" autocomplete="current-password"
-      style="width:100%;padding:10px 14px;font-size:14px;border:1.5px solid #ccc8c1;border-radius:8px;outline:none;margin-bottom:8px;font-family:inherit;transition:border-color .2s"
-      onkeydown="if(event.key==='Enter')firebaseLogin()"
-      onfocus="this.style.borderColor='#c0392b';this.style.boxShadow='0 0 0 3px rgba(192,57,43,.1)'"
-      onblur="this.style.borderColor='#ccc8c1';this.style.boxShadow='none'">
-    <div id="auth-error" style="color:#c0392b;font-size:12px;margin-bottom:10px;min-height:18px;text-align:left"></div>
-    <button id="auth-btn" onclick="firebaseLogin()"
-      style="width:100%;padding:11px;font-size:14px;font-weight:600;background:#c0392b;color:#fff;border:none;border-radius:8px;cursor:pointer;font-family:inherit;transition:all .2s"
-      onmouseover="this.style.background='#a93226'" onmouseout="this.style.background='#c0392b'">
-      登 录
-    </button>
-  </div>
-</div>
-<script>
-function firebaseLogin(){
-  const email=document.getElementById('auth-email').value.trim();
-  const password=document.getElementById('auth-password').value;
-  const errEl=document.getElementById('auth-error');
-  const btn=document.getElementById('auth-btn');
-  if(!email||!password){
-    errEl.textContent='请输入邮箱和密码';
-    return;
-  }
-  btn.disabled=true;
-  btn.textContent='登录中...';
-  firebase.auth().signInWithEmailAndPassword(email,password)
-    .then(user=>{
-      document.getElementById('auth-overlay').style.display='none';
-      document.getElementById('app').style.display='block';
-      if(window._appReady)window._appReady();
-    })
-    .catch(error=>{
-      errEl.textContent=error.message||'登录失败';
-      document.getElementById('auth-password').value='';
-      btn.disabled=false;
-      btn.textContent='登 录';
-    });
-}
-document.addEventListener('DOMContentLoaded',function(){document.getElementById('auth-email').focus();});
-</script>
-
-<!-- 主应用（密码通过后显示） -->
-<div id="app" style="display:none">
+<!-- 主应用 -->
+<div id="app">
 
   <header class="hdr">
     <div class="hdr-logo">
@@ -225,7 +173,6 @@ document.addEventListener('DOMContentLoaded',function(){document.getElementById(
         <div class="sdot" id="sdot"></div>
         <span id="slabel">本地</span>
       </div>
-      <button class="btn btn-sm btn-ghost" onclick="firebaseLogout()" title="退出登录"><i class="ti ti-logout"></i> 退出</button>
     </div>
   </header>
 
@@ -3760,49 +3707,10 @@ function bar(label,val,max,unit,pct,ok) {
 function closeModal(){document.getElementById('modal-container').innerHTML='';}
 
 window._appReady = function() {
-  // Firebase initialization 已在 setupAuthListener() 中完成
-  // loadState() 也已在 setupAuthListener() 中调用
+  // Firebase initialization 已在顶层脚本中完成
+  loadState();
 };
 
-// Firebase Auth 监听（Firebase 已在顶层初始化）
-function setupAuthListener() {
-  if (!USE_FIREBASE) return;
-
-  // 设置 Auth 状态监听
-  firebase.auth().onAuthStateChanged(user => {
-    if (user) {
-      // 已登录 - 隐藏登录框，显示应用
-      document.getElementById('auth-overlay').style.display = 'none';
-      document.getElementById('app').style.display = 'block';
-      loadState(); // 加载应用数据
-    } else {
-      // 未登录 - 显示登录框，隐藏应用
-      document.getElementById('auth-overlay').style.display = 'flex';
-      document.getElementById('app').style.display = 'none';
-    }
-  });
-}
-
-function firebaseLogout() {
-  if (!USE_FIREBASE) {
-    alert('未启用 Firebase');
-    return;
-  }
-  firebase.auth().signOut()
-    .then(() => {
-      // 退出成功，onAuthStateChanged 会自动显示登录框
-    })
-    .catch(error => {
-      alert('退出失败: ' + error.message);
-    });
-}
-
-// 页面加载完成后初始化 Auth 监听
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', setupAuthListener);
-} else {
-  setupAuthListener();
-}
 </script>
 </body>
 </html>
