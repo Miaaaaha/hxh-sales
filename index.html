@@ -335,7 +335,27 @@ label{font-size:12px;font-weight:500;color:var(--t2);margin-bottom:4px;display:b
                   <select id="q-inco" onchange="updateQuote()"><option>CIF</option><option>FOB</option><option>EXW</option></select>
                 </div>
               </div>
-              <div class="fg"><label>Discount (%)</label><input type="number" id="q-disc" value="0" min="0" max="30" oninput="updateQuote()"></div>
+              <!-- 价格明细（手填） -->
+              <div style="border-top:1px solid var(--bdr);padding-top:10px;margin-top:4px">
+                <div style="font-size:11px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">价格明细（手填，不含参考价）</div>
+                <div class="fg"><label>机器售价 (USD)</label><input type="number" id="q-price-machine" placeholder="0.00" min="0" step="0.01" oninput="updateQuote()"></div>
+                <div class="fgrid">
+                  <div class="fg"><label>运费 (USD)</label><input type="number" id="q-price-freight" placeholder="0.00" min="0" step="0.01" oninput="updateQuote()"></div>
+                  <div class="fg"><label>保险费 (USD)</label><input type="number" id="q-price-insurance" placeholder="0.00" min="0" step="0.01" oninput="updateQuote()"></div>
+                </div>
+                <div class="fgrid">
+                  <div class="fg"><label>其他费用名称</label><input type="text" id="q-other-name" placeholder="e.g. 包装费" oninput="updateQuote()"></div>
+                  <div class="fg"><label>金额 (USD)</label><input type="number" id="q-other-amt" placeholder="0.00" min="0" step="0.01" oninput="updateQuote()"></div>
+                </div>
+                <div style="background:var(--bg2);border-radius:6px;padding:8px 12px;margin-top:6px;display:flex;justify-content:space-between;align-items:center">
+                  <span style="font-weight:600;color:var(--t2);font-size:12px">合计 TOTAL</span>
+                  <span id="q-total-display" style="font-weight:700;color:var(--grn);font-size:16px">USD 0.00</span>
+                </div>
+                <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--t3);margin-top:4px;padding:0 4px">
+                  <span>Deposit 30%: <strong id="q-deposit-display">USD 0.00</strong></span>
+                  <span>Balance 70%: <strong id="q-balance-display">USD 0.00</strong></span>
+                </div>
+              </div>
               <div class="fg" id="ref-pi-group" style="display:none">
                 <label>Reference PI No.</label>
                 <input type="text" id="q-ref-pi" placeholder="HXH-PI-20260522-001" oninput="updateQuote()">
@@ -825,7 +845,7 @@ function populateModelSelect() {
   sel.innerHTML='<option value="">-- Select machine --</option>'+
     state.inventory
       .filter(i=>i.status==='在库'||i.status==='预留')
-      .map(i=>`<option value="${i.machineId}">${i.machineId} · ${i.model} (${i.power}) — $${i.price.toLocaleString()}</option>`)
+      .map(i=>`<option value="${i.machineId}">${i.machineId} · ${i.model} (${i.power})</option>`)
       .join('');
   if(val)sel.value=val;
 }
@@ -865,23 +885,27 @@ function calcValues() {
   if(!machineId) return null;
   const item=state.inventory.find(x=>x.machineId===machineId);
   if(!item) return null;
-  const qty     =parseInt(document.getElementById('q-qty').value)||1;
-  const inco    =document.getElementById('q-inco').value;
-  const disc    =parseFloat(document.getElementById('q-disc').value)||0;
-  const company =document.getElementById('q-company').value||'Valued Customer';
-  const address =document.getElementById('q-address').value||'';
-  const port    =document.getElementById('q-port').value;
-  const loading =document.getElementById('q-loading').value;
-  const refPi   =document.getElementById('q-ref-pi')?.value||'';
-  const unitPrice=item.price*(1-disc/100);
-  const subtotal =unitPrice*qty;
-  const portKey  =port.split(',')[0].trim();
-  const freight  =inco==='CIF'?(FREIGHT.CIF[portKey]||3000)*qty:0;
-  const total    =subtotal+freight;
+  const qty          =parseInt(document.getElementById('q-qty').value)||1;
+  const inco         =document.getElementById('q-inco').value;
+  const company      =document.getElementById('q-company').value||'Valued Customer';
+  const address      =document.getElementById('q-address').value||'';
+  const port         =document.getElementById('q-port').value;
+  const loading      =document.getElementById('q-loading').value;
+  const refPi        =document.getElementById('q-ref-pi')?.value||'';
+  // 手填价格
+  const priceMachine =parseFloat(document.getElementById('q-price-machine')?.value)||0;
+  const priceFreight =parseFloat(document.getElementById('q-price-freight')?.value)||0;
+  const priceInsurance=parseFloat(document.getElementById('q-price-insurance')?.value)||0;
+  const otherName    =document.getElementById('q-other-name')?.value.trim()||'';
+  const otherAmt     =parseFloat(document.getElementById('q-other-amt')?.value)||0;
+  const total        =priceMachine+priceFreight+priceInsurance+otherAmt;
+  const unitPrice    =qty>1?(priceMachine/qty):priceMachine;
   const sc=getSellerContact();
   const ciCompanyId=parseInt(document.getElementById('ci-company-sel')?.value||0);
   const ciCompany=(state.companies||[]).find(c=>c.id===ciCompanyId)||null;
-  return {item,qty,inco,disc,company,address,port,loading,refPi,unitPrice,subtotal,freight,total,deposit:total*0.3,balance:total*0.7,sc,ciCompany};
+  return {item,qty,inco,company,address,port,loading,refPi,
+          priceMachine,priceFreight,priceInsurance,otherName,otherAmt,
+          unitPrice,total,deposit:total*0.3,balance:total*0.7,sc,ciCompany};
 }
 
 const SELLER_ADDR='No.6, Lane 3, Shatian Environmental Protection Middle Road, Shatian Town, Dongguan City, Guangdong Province, China';
@@ -903,7 +927,17 @@ function lh(sc) {
 
 function updateQuote() {
   const v=calcValues();
-  if(!v){document.getElementById('quote-content').innerHTML='<div style="padding:24px;color:var(--t3);font-size:13px">Select a model to generate the document preview.</div>';return;}
+  const setDisp=(id,val)=>{const el=document.getElementById(id);if(el)el.textContent=val;};
+  if(!v){
+    document.getElementById('quote-content').innerHTML='<div style="padding:24px;color:var(--t3);font-size:13px">Select a model to generate the document preview.</div>';
+    setDisp('q-total-display','USD 0.00');
+    setDisp('q-deposit-display','USD 0.00');
+    setDisp('q-balance-display','USD 0.00');
+    return;
+  }
+  setDisp('q-total-display',usd(v.total));
+  setDisp('q-deposit-display',usd(v.deposit));
+  setDisp('q-balance-display',usd(v.balance));
   ({quote:renderInitialQuote,pi:renderPI,deposit:renderDepositPI,ci:renderCI})[docType](v);
 }
 
@@ -994,14 +1028,15 @@ function renderInitialQuote(v) {
           HS Code: 8502.20.0000 &nbsp;|&nbsp; Country of Origin: China<br>
           ${machineSpecBlock(v.item)}</td>
         <td style="text-align:center">${v.qty} set(s)</td>
-        <td class="r">${usd(v.unitPrice)}</td>
-        <td class="r">${usd(v.subtotal)}</td>
+        <td class="r">${v.priceMachine>0?usd(v.unitPrice):'—'}</td>
+        <td class="r">${v.priceMachine>0?usd(v.priceMachine):'—'}</td>
       </tr></tbody>
     </table>
     <div class="doc-totals">
-      ${v.disc>0?`<div class="dtr"><span>Discount (${v.disc}%)</span><span>− ${usd(v.item.price*v.disc/100*v.qty)}</span></div>`:''}
-      <div class="dtr"><span>Subtotal</span><span>${usd(v.subtotal)}</span></div>
-      ${v.freight>0?`<div class="dtr"><span>Sea Freight + Insurance</span><span>${usd(v.freight)}</span></div>`:''}
+      ${v.priceMachine>0?`<div class="dtr"><span>Machine Price</span><span>${usd(v.priceMachine)}</span></div>`:''}
+      ${v.priceFreight>0?`<div class="dtr"><span>Sea Freight</span><span>${usd(v.priceFreight)}</span></div>`:''}
+      ${v.priceInsurance>0?`<div class="dtr"><span>Marine Insurance</span><span>${usd(v.priceInsurance)}</span></div>`:''}
+      ${v.otherAmt>0&&v.otherName?`<div class="dtr"><span>${v.otherName}</span><span>${usd(v.otherAmt)}</span></div>`:''}
       <div class="dtr final"><span>${v.inco} TOTAL</span><span>${usd(v.total)}</span></div>
     </div>
     <div style="clear:both;margin-top:16px">
@@ -1053,14 +1088,15 @@ function renderPI(v) {
           ${machineSpecBlock(v.item)}<br>Country of Origin: China</td>
         <td style="font-family:monospace;font-size:11px">8502.20.0000</td>
         <td style="text-align:center">${v.qty}</td>
-        <td class="r">${usd(v.unitPrice)}</td>
-        <td class="r">${usd(v.subtotal)}</td>
+        <td class="r">${v.priceMachine>0?usd(v.unitPrice):'—'}</td>
+        <td class="r">${v.priceMachine>0?usd(v.priceMachine):'—'}</td>
       </tr></tbody>
     </table>
     <div class="doc-totals">
-      ${v.disc>0?`<div class="dtr"><span>Discount (${v.disc}%)</span><span>− ${usd(v.item.price*v.disc/100*v.qty)}</span></div>`:''}
-      <div class="dtr"><span>Subtotal (FOB)</span><span>${usd(v.subtotal)}</span></div>
-      ${v.freight>0?`<div class="dtr"><span>Sea Freight + Insurance</span><span>${usd(v.freight)}</span></div>`:''}
+      ${v.priceMachine>0?`<div class="dtr"><span>Machine Price (FOB)</span><span>${usd(v.priceMachine)}</span></div>`:''}
+      ${v.priceFreight>0?`<div class="dtr"><span>Sea Freight</span><span>${usd(v.priceFreight)}</span></div>`:''}
+      ${v.priceInsurance>0?`<div class="dtr"><span>Marine Insurance</span><span>${usd(v.priceInsurance)}</span></div>`:''}
+      ${v.otherAmt>0&&v.otherName?`<div class="dtr"><span>${v.otherName}</span><span>${usd(v.otherAmt)}</span></div>`:''}
       <div class="dtr final"><span>${v.inco} TOTAL</span><span>${usd(v.total)}</span></div>
     </div>
     <div style="clear:both;padding-top:14px">
@@ -1125,7 +1161,8 @@ function renderDepositPI(v) {
       <thead><tr><th>Description</th><th style="width:130px;text-align:right">Full Contract (USD)</th><th style="width:130px;text-align:right">Deposit 30% (USD)</th></tr></thead>
       <tbody><tr>
         <td><strong>${v.item.model}</strong> &times; ${v.qty} set(s)<br>
-          <span style="font-size:11px;color:#555">Output: ${v.item.power} &nbsp;|&nbsp; ${v.item.condition}<br>${v.inco} ${v.port}</span></td>
+          <span style="font-size:11px;color:#555">Output: ${v.item.power} &nbsp;|&nbsp; ${v.item.condition}<br>
+          ${machineSpecBlock(v.item)}<br>${v.inco} ${v.port}</span></td>
         <td class="r">${usd(v.total)}</td>
         <td class="r" style="background:#fffbea;font-weight:700">${usd(v.deposit)}</td>
       </tr></tbody>
@@ -1193,14 +1230,15 @@ function renderCI(v) {
           ${machineSpecBlock(v.item)}<br>Country of Origin: China (People's Republic of China)</span></td>
         <td style="font-family:monospace;font-size:11px">8502.20.0000</td>
         <td style="text-align:center">${v.qty}</td>
-        <td class="r">${usd(v.unitPrice)}</td>
-        <td class="r">${usd(v.subtotal)}</td>
+        <td class="r">${v.priceMachine>0?usd(v.unitPrice):'—'}</td>
+        <td class="r">${v.priceMachine>0?usd(v.priceMachine):'—'}</td>
       </tr></tbody>
     </table>
     <div class="doc-totals">
-      ${v.disc>0?`<div class="dtr"><span>Discount (${v.disc}%)</span><span>− ${usd(v.item.price*v.disc/100*v.qty)}</span></div>`:''}
-      <div class="dtr"><span>FOB Value</span><span>${usd(v.subtotal)}</span></div>
-      ${v.freight>0?`<div class="dtr"><span>Sea Freight + Insurance</span><span>${usd(v.freight)}</span></div>`:''}
+      ${v.priceMachine>0?`<div class="dtr"><span>FOB Value</span><span>${usd(v.priceMachine)}</span></div>`:''}
+      ${v.priceFreight>0?`<div class="dtr"><span>Sea Freight</span><span>${usd(v.priceFreight)}</span></div>`:''}
+      ${v.priceInsurance>0?`<div class="dtr"><span>Marine Insurance</span><span>${usd(v.priceInsurance)}</span></div>`:''}
+      ${v.otherAmt>0&&v.otherName?`<div class="dtr"><span>${v.otherName}</span><span>${usd(v.otherAmt)}</span></div>`:''}
       <div class="dtr final"><span>${v.inco} TOTAL VALUE</span><span>${usd(v.total)}</span></div>
     </div>
     <div style="clear:both;margin-top:16px;font-size:12px"><strong>Declaration / Certification:</strong>
