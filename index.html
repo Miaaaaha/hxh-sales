@@ -221,6 +221,7 @@ label{font-size:12px;font-weight:500;color:var(--t2);margin-bottom:4px;display:b
     <button class="ntab" onclick="switchTab('quotes')"><i class="ti ti-history"></i> 报价记录</button>
     <button class="ntab" onclick="switchTab('freight')"><i class="ti ti-ship"></i> 货代询价</button>
     <button class="ntab" onclick="switchTab('dashboard')"><i class="ti ti-chart-pie"></i> 看板</button>
+    <button class="ntab" onclick="switchTab('orders')"><i class="ti ti-truck-delivery"></i> 订单追踪</button>
     <button class="ntab" onclick="switchTab('activity')"><i class="ti ti-activity"></i> 动态</button>
   </nav>
 
@@ -297,10 +298,11 @@ label{font-size:12px;font-weight:500;color:var(--t2);margin-bottom:4px;display:b
               <div class="fg">
                 <label>单证类型</label>
                 <div class="doc-tabs">
-                  <button class="dtab active" onclick="setDocType('quote',this)">Initial Quote</button>
-                  <button class="dtab" onclick="setDocType('pi',this)">Proforma Invoice</button>
-                  <button class="dtab" onclick="setDocType('deposit',this)">Deposit PI</button>
-                  <button class="dtab" onclick="setDocType('ci',this)">Commercial Invoice</button>
+                  <button class="dtab active" onclick="setDocType('quote',this)">初始报价 Initial Quote</button>
+                  <button class="dtab" onclick="setDocType('pi',this)">形式发票 Proforma Invoice</button>
+                  <button class="dtab" onclick="setDocType('deposit',this)">定金形式发票 Deposit PI</button>
+                  <button class="dtab" onclick="setDocType('ci',this)">商业发票 Commercial Invoice</button>
+                  <button class="dtab" onclick="setDocType('pl',this)">装箱单 Packing List</button>
                 </div>
               </div>
               <!-- CI 抬头选择（仅 Commercial Invoice 显示） -->
@@ -358,6 +360,29 @@ label{font-size:12px;font-weight:500;color:var(--t2);margin-bottom:4px;display:b
                   <span>Deposit 30%: <strong id="q-deposit-display">USD 0.00</strong></span>
                   <span>Balance 70%: <strong id="q-balance-display">USD 0.00</strong></span>
                 </div>
+              </div>
+              <!-- 装箱单专用字段（仅 pl 类型显示） -->
+              <div id="pl-fields-group" style="display:none;border-top:1px solid var(--bdr);padding-top:10px;margin-top:4px">
+                <div style="font-size:11px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">装箱单 Packing List 字段</div>
+                <div class="fgrid">
+                  <div class="fg"><label>件数 No. of Packages</label><input type="number" id="pl-pkgs" value="1" min="1" oninput="updateQuote()"></div>
+                  <div class="fg"><label>包装方式 Packing Type</label>
+                    <select id="pl-packing" onchange="updateQuote()">
+                      <option>裸装 Nude/Bare</option>
+                      <option>木框架 Wooden Frame</option>
+                      <option>木箱 Wooden Case</option>
+                      <option>铁框架 Steel Frame</option>
+                      <option>铁箱 Steel Case</option>
+                      <option>托盘 Pallet</option>
+                    </select>
+                  </div>
+                </div>
+                <div class="fgrid">
+                  <div class="fg"><label>每件净重 Net Wt/pkg (kg)</label><input type="number" id="pl-nw" placeholder="自动带入" oninput="updateQuote()"></div>
+                  <div class="fg"><label>每件毛重 Gross Wt/pkg (kg)</label><input type="number" id="pl-gw" placeholder="净重+包装" oninput="updateQuote()"></div>
+                </div>
+                <div class="fg"><label>每件体积 Measurement/pkg (CBM)</label><input type="number" id="pl-cbm" placeholder="自动计算" step="0.001" oninput="updateQuote()"></div>
+                <div class="fg"><label>备注 Remarks</label><input type="text" id="pl-remarks" placeholder="e.g. Handle with care" oninput="updateQuote()"></div>
               </div>
               <!-- 物流 & 交货 -->
               <div style="border-top:1px solid var(--bdr);padding-top:10px;margin-top:4px">
@@ -479,6 +504,25 @@ label{font-size:12px;font-weight:500;color:var(--t2);margin-bottom:4px;display:b
       </div>
     </div>
 
+    <!-- 订单追踪 -->
+    <div id="sec-orders" class="section">
+      <div class="card">
+        <div class="ch">
+          <span class="ct">订单追踪</span>
+          <button class="btn btn-primary btn-sm" onclick="openAddOrder()"><i class="ti ti-plus"></i> 新增订单</button>
+        </div>
+        <div style="overflow-x:auto">
+        <table style="min-width:1000px">
+          <thead><tr>
+            <th>订单号</th><th>客户</th><th>机器ID</th><th>总价 (USD)</th>
+            <th>定金</th><th>尾款</th><th>状态</th><th>出货日</th><th>提单号</th><th>操作</th>
+          </tr></thead>
+          <tbody id="orders-table"></tbody>
+        </table>
+        </div>
+      </div>
+    </div>
+
     <!-- 动态 -->
     <div id="sec-activity" class="section">
       <div class="card">
@@ -562,7 +606,9 @@ let state = {
     {id:6,name:'东南亚仓',address:''},
     {id:7,name:'海外仓',address:''},
   ],
-  nextWarehouseId: 8
+  nextWarehouseId: 8,
+  orders: [],
+  nextOrderSeq: 1
 };
 
 const FREIGHT = {CIF:{Lagos:2800,Mombasa:3200,Tema:2900,'Dar es Salaam':3400,Jeddah:2200,Dubai:2000,Karachi:2600,Manila:3100}};
@@ -612,6 +658,8 @@ function migrateState(s) {
     {id:5,name:'美国仓',address:''},{id:6,name:'东南亚仓',address:''},{id:7,name:'海外仓',address:''},
   ];
   if (!s.nextWarehouseId) s.nextWarehouseId = 8;
+  if (!s.orders) s.orders = [];
+  if (!s.nextOrderSeq) s.nextOrderSeq = 1;
   // 检测是否为旧格式（有qty、无machineId）
   if (s.inventory && s.inventory.length && s.inventory[0].qty !== undefined && !s.inventory[0].machineId) {
     const year = new Date().getFullYear();
@@ -668,7 +716,7 @@ function saveState() {
 function switchTab(t) {
   document.querySelectorAll('.ntab').forEach(el=>el.classList.remove('active'));
   document.querySelectorAll('.section').forEach(el=>el.classList.remove('active'));
-  const tabs=['leads','inventory','quote','quotes','freight','dashboard','activity'];
+  const tabs=['leads','inventory','quote','quotes','freight','dashboard','orders','activity'];
   const idx=tabs.indexOf(t);
   if(idx>=0) document.querySelectorAll('.ntab')[idx].classList.add('active');
   document.getElementById('sec-'+t).classList.add('active');
@@ -676,6 +724,7 @@ function switchTab(t) {
   if(t==='quotes') renderQuoteHistory();
   if(t==='freight') renderFreight();
   if(t==='dashboard'){ renderDashboard(); populateCcMachine(); }
+  if(t==='orders') renderOrders();
 }
 
 function stageBadge(s) {
@@ -753,9 +802,13 @@ function renderInventory(list) {
   el.innerHTML=rows.map(i=>`
     <tr>
       <td>
-        ${i.image
-          ? `<img class="inv-thumb" src="${i.image}" onclick="previewImage('${i.machineId}')" title="点击查看大图">`
+        ${(i.images?.length||i.image)
+          ? `<div style="position:relative;display:inline-block">
+              <img class="inv-thumb" src="${i.images?.[0]?.url||i.image}" onclick="previewImageGallery(${i.id})" title="点击查看图集">
+              ${(i.images?.length>1)?`<span style="position:absolute;bottom:2px;right:2px;background:rgba(0,0,0,.6);color:#fff;font-size:9px;padding:1px 4px;border-radius:3px">${i.images.length}</span>`:''}
+            </div>`
           : `<div class="inv-thumb-ph" title="无图片"><i class="ti ti-camera" style="font-size:16px"></i></div>`}
+        ${i.exportData?.isOOG?`<div style="font-size:9px;color:var(--acc);font-weight:600;margin-top:2px">OOG</div>`:''}
       </td>
       <td><span style="font-family:monospace;font-size:12px;font-weight:600;color:var(--acc)">${i.machineId}</span></td>
       <td>
@@ -803,12 +856,37 @@ function filterInventory() {
 
 function previewImage(machineId) {
   const i=state.inventory.find(x=>x.machineId===machineId);
-  if(!i||!i.image)return;
+  if(!i||(!(i.images?.length)&&!i.image))return;
+  previewImageGallery(i.id);
+}
+function previewImageGallery(id) {
+  const i=state.inventory.find(x=>x.id===id);
+  if(!i)return;
+  const imgs=i.images?.length?i.images:(i.image?[{url:i.image,label:'图片'}]:[]);
+  if(!imgs.length)return;
+  let cur=0;
+  function show(n) {
+    cur=(n+imgs.length)%imgs.length;
+    overlay.querySelector('#gal-img').src=imgs[cur].url;
+    overlay.querySelector('#gal-label').textContent=`${imgs[cur].label||''} (${cur+1}/${imgs.length})`;
+  }
   const overlay=document.createElement('div');
   overlay.className='img-preview-overlay';
-  overlay.innerHTML=`<img src="${i.image}" alt="${i.model}">`;
+  overlay.style.flexDirection='column';
+  overlay.style.gap='10px';
+  overlay.innerHTML=`
+    <div style="color:#fff;font-size:12px" id="gal-label"></div>
+    <div style="display:flex;align-items:center;gap:16px">
+      ${imgs.length>1?`<button onclick="event.stopPropagation();previewImageGallery._nav(-1)" style="background:rgba(255,255,255,.2);border:none;color:#fff;font-size:24px;width:36px;height:36px;border-radius:50%;cursor:pointer">‹</button>`:'<span style="width:36px"></span>'}
+      <img id="gal-img" style="max-width:80vw;max-height:75vh;border-radius:8px;box-shadow:0 8px 32px rgba(0,0,0,.5)" src="">
+      ${imgs.length>1?`<button onclick="event.stopPropagation();previewImageGallery._nav(1)" style="background:rgba(255,255,255,.2);border:none;color:#fff;font-size:24px;width:36px;height:36px;border-radius:50%;cursor:pointer">›</button>`:'<span style="width:36px"></span>'}
+    </div>
+    <div style="display:flex;gap:6px">${imgs.map((img,idx)=>`<img src="${img.url}" onclick="event.stopPropagation();previewImageGallery._go(${idx})" style="width:48px;height:36px;object-fit:cover;border-radius:4px;cursor:pointer;opacity:.7;border:2px solid transparent" class="gal-thumb">`).join('')}</div>`;
+  previewImageGallery._nav=(d)=>show(cur+d);
+  previewImageGallery._go=(n)=>show(n);
   overlay.onclick=()=>overlay.remove();
   document.body.appendChild(overlay);
+  show(0);
 }
 
 function renderActivity() {
@@ -880,10 +958,11 @@ function setDocType(type, el) {
   docType = type;
   document.querySelectorAll('.dtab').forEach(t => t.classList.remove('active'));
   el.classList.add('active');
-  document.getElementById('ref-pi-group').style.display = (type==='deposit'||type==='ci') ? '' : 'none';
-  document.getElementById('ci-seller-group').style.display = (type==='ci') ? '' : 'none';
-  if(type==='ci') populateCiCompanySel();
-  const titles = {quote:'Initial Quotation', pi:'Proforma Invoice', deposit:'Deposit Proforma Invoice', ci:'Commercial Invoice'};
+  document.getElementById('ref-pi-group').style.display = (type==='deposit'||type==='ci'||type==='pl') ? '' : 'none';
+  document.getElementById('ci-seller-group').style.display = (type==='ci'||type==='pl') ? '' : 'none';
+  document.getElementById('pl-fields-group').style.display = (type==='pl') ? '' : 'none';
+  if(type==='ci'||type==='pl') populateCiCompanySel();
+  const titles = {quote:'初始报价 Initial Quotation', pi:'形式发票 Proforma Invoice', deposit:'定金形式发票 Deposit PI', ci:'商业发票 Commercial Invoice', pl:'装箱单 Packing List'};
   document.getElementById('doc-preview-title').textContent = titles[type];
   updateQuote();
 }
@@ -936,6 +1015,14 @@ function onMachineSelect() {
     const addr=getPickupAddress(item.warehouse);
     if(addr) addrEl.value=addr;
   }
+  // 装箱单自动带入净重 & 体积
+  if(item) {
+    const nw=document.getElementById('pl-nw');
+    const cbm=document.getElementById('pl-cbm');
+    if(nw&&item.weight&&!nw.value) nw.value=item.weight;
+    if(cbm&&item.length&&item.width&&item.height&&!cbm.value)
+      cbm.value=(parseFloat(item.length)*parseFloat(item.width)*parseFloat(item.height)).toFixed(3);
+  }
   updateQuote();
 }
 
@@ -968,10 +1055,18 @@ function calcValues() {
   const sc=getSellerContact();
   const ciCompanyId=parseInt(document.getElementById('ci-company-sel')?.value||0);
   const ciCompany=(state.companies||[]).find(c=>c.id===ciCompanyId)||null;
+  // 装箱单字段
+  const plPkgs    =parseInt(document.getElementById('pl-pkgs')?.value)||1;
+  const plPacking =document.getElementById('pl-packing')?.value||'';
+  const plNw      =parseFloat(document.getElementById('pl-nw')?.value)||0;
+  const plGw      =parseFloat(document.getElementById('pl-gw')?.value)||0;
+  const plCbm     =parseFloat(document.getElementById('pl-cbm')?.value)||0;
+  const plRemarks =document.getElementById('pl-remarks')?.value.trim()||'';
   return {item,qty,inco,company,address,port,loading,refPi,
           priceMachine,priceFreight,priceInsurance,otherName,otherAmt,
           unitPrice,total,deposit:total*0.3,balance:total*0.7,
           deliveryTime,pickupMethod,pickupAddr,pickupReq,inspection,
+          plPkgs,plPacking,plNw,plGw,plCbm,plRemarks,
           sc,ciCompany};
 }
 
@@ -1005,14 +1100,14 @@ function updateQuote() {
   setDisp('q-total-display',usd(v.total));
   setDisp('q-deposit-display',usd(v.deposit));
   setDisp('q-balance-display',usd(v.balance));
-  ({quote:renderInitialQuote,pi:renderPI,deposit:renderDepositPI,ci:renderCI})[docType](v);
+  ({quote:renderInitialQuote,pi:renderPI,deposit:renderDepositPI,ci:renderCI,pl:renderPackingList})[docType](v);
 }
 
 function generateQuote() {
   const v=calcValues();
   if(!v){alert('Please select a machine first.');return;}
-  const prefixes={quote:'Q',pi:'PI',deposit:'DPI',ci:'CI'};
-  const labels={quote:'Quotation',pi:'Proforma Invoice',deposit:'Deposit PI',ci:'Commercial Invoice'};
+  const prefixes={quote:'Q',pi:'PI',deposit:'DPI',ci:'CI',pl:'PL'};
+  const labels={quote:'Quotation',pi:'Proforma Invoice',deposit:'Deposit PI',ci:'Commercial Invoice',pl:'Packing List'};
   const no=docNo(prefixes[docType]);
   state.nextDocSeq=(state.nextDocSeq||1)+1;
   if(!state.quotes) state.quotes=[];
@@ -1125,14 +1220,14 @@ function renderInitialQuote(v) {
     <div style="clear:both;margin-top:16px">
       <div style="font-weight:700;font-size:10.5px;text-transform:uppercase;letter-spacing:.07em;color:#888;margin-bottom:8px">Terms &amp; Conditions</div>
       <div class="doc-kv">
-        <span>Incoterms 2020:</span><span>${v.inco} ${v.port}</span>
-        <span>Port of Loading:</span><span>${v.loading}</span>
-        <span>Port of Destination:</span><span>${v.port}</span>
-        <span>Payment Terms:</span><span>T/T — 30% advance upon order confirmation; 70% balance before B/L release</span>
-        <span>Lead Time:</span><span>${leadTime(v.port)} working days from receipt of deposit</span>
-        <span>Validity:</span><span>30 days from date of issue</span>
-        <span>Currency:</span><span>United States Dollar (USD)</span>
-        <span>Inspection:</span><span>Available upon request prior to shipment</span>
+        <span>贸易条款 Incoterms 2020:</span><span>${v.inco} ${v.port}</span>
+        <span>装运港 Port of Loading:</span><span>${v.loading}</span>
+        <span>目的港 Port of Destination:</span><span>${v.port}</span>
+        <span>付款方式 Payment Terms:</span><span>T/T — 30% advance upon order confirmation; 70% balance before B/L release</span>
+        <span>交货期 Lead Time:</span><span>${v.deliveryTime||leadTime(v.port)+' working days from receipt of deposit'}</span>
+        <span>有效期 Validity:</span><span>30 days from date of issue</span>
+        <span>货币 Currency:</span><span>United States Dollar (USD)</span>
+        <span>验货 Inspection:</span><span>${v.inspection||'Available upon request prior to shipment'}</span>
       </div>
     </div>
     ${logisticsBlock(v)}
@@ -1185,11 +1280,11 @@ function renderPI(v) {
     </div>
     <div style="clear:both;padding-top:14px">
       <div class="doc-kv" style="font-size:12px">
-        <span>Incoterms 2020:</span><span>${v.inco} ${v.port}</span>
-        <span>Port of Loading:</span><span>${v.loading}</span>
-        <span>Port of Destination:</span><span>${v.port}</span>
-        <span>Country of Origin:</span><span>China (People's Republic of China)</span>
-        <span>Lead Time:</span><span>${leadTime(v.port)} working days from receipt of deposit</span>
+        <span>贸易条款 Incoterms 2020:</span><span>${v.inco} ${v.port}</span>
+        <span>装运港 Port of Loading:</span><span>${v.loading}</span>
+        <span>目的港 Port of Destination:</span><span>${v.port}</span>
+        <span>原产国 Country of Origin:</span><span>China (People's Republic of China)</span>
+        <span>交货期 Lead Time:</span><span>${v.deliveryTime||leadTime(v.port)+' working days from receipt of deposit'}</span>
       </div>
     </div>
     ${logisticsBlock(v)}
@@ -1289,30 +1384,30 @@ function renderCI(v) {
       <span style="font-weight:600">B/L No.:</span> [To be completed upon shipment]
     </div>
     <div class="doc-parties">
-      <div><div class="dp-lbl">Shipper / Exporter</div>
+      <div><div class="dp-lbl">发货人 Shipper / Exporter</div>
         <strong>${v.ciCompany?v.ciCompany.name:'HXH Power Equipment Co., Ltd.'}</strong><br>
         <span style="color:#555;font-size:10.5px">${v.ciCompany?v.ciCompany.address:SELLER_ADDR}${v.ciCompany?.website?'<br>Web: '+v.ciCompany.website:''}${v.sc.name?'<br>Contact: '+v.sc.name:''}${v.sc.wa?'<br>WhatsApp: '+v.sc.wa:''}${v.sc.email?'<br>Email: '+v.sc.email:''}</span>
       </div>
-      <div><div class="dp-lbl">Consignee / Importer</div>
+      <div><div class="dp-lbl">收货人 Consignee / Importer</div>
         <strong>${v.company}</strong><br>
         <span style="color:#555;font-size:11.5px">${v.address?v.address.replace(/\n/g,'<br>'):'—'}</span>
       </div>
     </div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:11.5px;background:#f8f7f4;border:1px solid #e4e1db;border-radius:6px;padding:10px 14px;margin-bottom:14px">
-      <div><span style="font-weight:600">Port of Loading:</span> ${v.loading}</div>
-      <div><span style="font-weight:600">Port of Discharge:</span> ${v.port}</div>
-      <div><span style="font-weight:600">Incoterms 2020:</span> ${v.inco} ${v.port}</div>
-      <div><span style="font-weight:600">Country of Origin:</span> China (P.R.C.)</div>
-      <div><span style="font-weight:600">Vessel / Voyage:</span> [To be completed]</div>
-      <div><span style="font-weight:600">ETD / ETA:</span> [To be completed]</div>
+      <div><span style="font-weight:600">装运港 Port of Loading:</span> ${v.loading}</div>
+      <div><span style="font-weight:600">目的港 Port of Discharge:</span> ${v.port}</div>
+      <div><span style="font-weight:600">贸易条款 Incoterms 2020:</span> ${v.inco} ${v.port}</div>
+      <div><span style="font-weight:600">原产国 Country of Origin:</span> China (P.R.C.)</div>
+      <div><span style="font-weight:600">船名航次 Vessel / Voyage:</span> [To be completed]</div>
+      <div><span style="font-weight:600">预计开/到港 ETD / ETA:</span> [To be completed]</div>
     </div>
     <table class="doc-tb">
-      <thead><tr><th style="width:26px">No.</th><th>Description of Goods</th><th style="width:90px">HS Code</th><th style="width:45px;text-align:center">Qty</th><th style="width:112px;text-align:right">Unit Price (USD)</th><th style="width:118px;text-align:right">Total (USD)</th></tr></thead>
+      <thead><tr><th style="width:26px">No.</th><th>货物描述 Description of Goods</th><th style="width:90px">HS Code</th><th style="width:45px;text-align:center">数量 Qty</th><th style="width:112px;text-align:right">单价 Unit Price (USD)</th><th style="width:118px;text-align:right">总价 Total (USD)</th></tr></thead>
       <tbody><tr>
         <td>1</td>
         <td><strong>${v.item.model}</strong> — Diesel Generator Set<br>
           <span style="font-size:11px;color:#555">${v.item.power} &nbsp;|&nbsp; ${v.item.condition}<br>
-          ${machineSpecBlock(v.item)}<br>Country of Origin: China (People's Republic of China)</span></td>
+          ${machineSpecBlock(v.item)}<br>原产国 Country of Origin: China (People's Republic of China)</span></td>
         <td style="font-family:monospace;font-size:11px">8502.20.0000</td>
         <td style="text-align:center">${v.qty}</td>
         <td class="r">${v.priceMachine>0?usd(v.unitPrice):'—'}</td>
@@ -1334,6 +1429,346 @@ function renderCI(v) {
       <div class="doc-sign"><br><br><span style="font-weight:600">Authorized Signature &amp; Company Chop</span><br><span style="color:#888">HXH Power Equipment Co., Ltd.</span><br><span style="color:#888">${fmtDate(today)}</span></div>
     </div>
   </div>`;
+}
+
+function renderPackingList(v) {
+  const today=new Date();
+  const no=docNo('PL');
+  const totalNw=(v.plNw*v.plPkgs)||0;
+  const totalGw=(v.plGw*v.plPkgs)||0;
+  const totalCbm=(v.plCbm*v.plPkgs)||0;
+  document.getElementById('quote-content').innerHTML=`<div class="doc" style="padding:8px">
+    ${v.ciCompany?`<div class="doc-lh">
+      <div><div class="doc-co">${v.ciCompany.name.toUpperCase()}</div>
+        <div style="font-size:9.5px;color:#888;margin-top:3px;line-height:1.6">${v.ciCompany.address}${v.ciCompany.website?'<br>Web: '+v.ciCompany.website:''}</div>
+      </div>
+      <div style="text-align:right;font-size:10px;color:#555;line-height:1.8">
+        ${v.sc.name?`<strong style="font-size:11px">${v.sc.name}</strong><br>`:''}
+        ${v.sc.wa?'WhatsApp: '+v.sc.wa+'<br>':''}${v.sc.email?'Email: '+v.sc.email:''}
+      </div></div>`:lh(v.sc)}
+    <div class="doc-h1">装箱单 PACKING LIST</div>
+    <div style="font-size:12px;margin-bottom:14px">
+      <span style="font-weight:600">PL No.:</span> ${no}&nbsp;&nbsp;
+      <span style="font-weight:600">Date 日期:</span> ${fmtDate(today)}<br>
+      ${v.refPi?`<span style="font-weight:600">Ref. PI No.:</span> ${v.refPi}&nbsp;&nbsp;`:''}
+    </div>
+    <div class="doc-parties">
+      <div><div class="dp-lbl">发货人 Shipper / Exporter</div>
+        <strong>${v.ciCompany?v.ciCompany.name:'HXH Power Equipment Co., Ltd.'}</strong><br>
+        <span style="color:#555;font-size:10.5px">${v.ciCompany?v.ciCompany.address:SELLER_ADDR}</span>
+      </div>
+      <div><div class="dp-lbl">收货人 Consignee / Importer</div>
+        <strong>${v.company}</strong><br>
+        <span style="color:#555;font-size:11.5px">${v.address?v.address.replace(/\n/g,'<br>'):'—'}</span>
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:11.5px;background:#f8f7f4;border:1px solid #e4e1db;border-radius:6px;padding:10px 14px;margin-bottom:14px">
+      <div><span style="font-weight:600">装运港 Port of Loading:</span> ${v.loading}</div>
+      <div><span style="font-weight:600">目的港 Port of Discharge:</span> ${v.port}</div>
+      <div><span style="font-weight:600">贸易条款 Incoterms 2020:</span> ${v.inco} ${v.port}</div>
+      <div><span style="font-weight:600">原产国 Country of Origin:</span> China (P.R.C.)</div>
+    </div>
+    <table class="doc-tb">
+      <thead><tr>
+        <th>货物描述 Description</th>
+        <th style="width:90px">HS Code</th>
+        <th style="width:50px;text-align:center">件数<br>Pkgs</th>
+        <th style="width:90px;text-align:left">包装方式<br>Packing</th>
+        <th style="width:90px;text-align:right">净重 Net Wt<br>(kg)</th>
+        <th style="width:90px;text-align:right">毛重 Gross Wt<br>(kg)</th>
+        <th style="width:80px;text-align:right">体积 Meas.<br>(CBM)</th>
+      </tr></thead>
+      <tbody><tr>
+        <td><strong>${v.item.model}</strong> — Diesel Generator Set<br>
+          <span style="font-size:11px;color:#555">Output: ${v.item.power} | ${v.item.condition}<br>
+          Machine ID: ${v.item.machineId}<br>
+          ${v.item.length&&v.item.width&&v.item.height?`尺寸 Dimensions: ${v.item.length}×${v.item.width}×${v.item.height} m`:''}</span></td>
+        <td style="font-family:monospace;font-size:11px">8502.20.0000</td>
+        <td style="text-align:center">${v.plPkgs}</td>
+        <td style="font-size:11px">${v.plPacking||'—'}</td>
+        <td style="text-align:right">${totalNw>0?totalNw.toLocaleString():'—'}</td>
+        <td style="text-align:right">${totalGw>0?totalGw.toLocaleString():'—'}</td>
+        <td style="text-align:right">${totalCbm>0?totalCbm.toFixed(3):'—'}</td>
+      </tr></tbody>
+      <tfoot><tr style="background:#f8f7f4;font-weight:700">
+        <td colspan="2">合计 Total</td>
+        <td style="text-align:center">${v.plPkgs}</td>
+        <td>—</td>
+        <td style="text-align:right">${totalNw>0?totalNw.toLocaleString()+' kg':'—'}</td>
+        <td style="text-align:right">${totalGw>0?totalGw.toLocaleString()+' kg':'—'}</td>
+        <td style="text-align:right">${totalCbm>0?totalCbm.toFixed(3)+' CBM':'—'}</td>
+      </tr></tfoot>
+    </table>
+    ${v.plRemarks?`<div style="font-size:11.5px;margin-top:8px;color:#555"><strong>备注 Remarks:</strong> ${v.plRemarks}</div>`:''}
+    ${logisticsBlock(v)}
+    <div style="display:flex;justify-content:space-between;margin-top:24px;align-items:flex-end">
+      <div style="font-size:11px;color:#888">This is a computer-generated packing list.<br>Page 1 of 1</div>
+      <div class="doc-sign"><br><br><span style="font-weight:600">Authorized Signature &amp; Company Chop</span><br>
+        <span style="color:#888">${v.ciCompany?v.ciCompany.name:'HXH Power Equipment Co., Ltd.'}</span><br>
+        <span style="color:#888">${fmtDate(today)}</span></div>
+    </div>
+  </div>`;
+}
+
+// ── 订单追踪 ─────────────────────────────────────────────────
+const ORDER_STAGES=['已发PI','已确认','已收定金','已收尾款','已出货','已到港'];
+const ORDER_STAGE_COLOR={
+  '已发PI':'badge-new','已确认':'badge-warm','已收定金':'badge-hot',
+  '已收尾款':'badge-project','已出货':'badge-won','已到港':'badge-instock'
+};
+function renderOrders() {
+  const orders=state.orders||[];
+  if(!orders.length){document.getElementById('orders-table').innerHTML=`<tr><td colspan="10" class="empty">暂无订单，点击右上角新增</td></tr>`;return;}
+  document.getElementById('orders-table').innerHTML=orders.map(o=>{
+    const paid=(o.payments||[]).reduce((s,p)=>s+p.amount,0);
+    const bal=Math.max(0,(o.total||0)-paid);
+    return `<tr>
+      <td style="font-weight:600">${o.no}</td>
+      <td>${o.company||'—'}</td>
+      <td>${o.machineId||'—'}</td>
+      <td style="font-family:monospace">${o.total?'$'+Number(o.total).toLocaleString():'—'}</td>
+      <td style="font-family:monospace;color:var(--org)">${paid?'$'+Number(paid).toLocaleString():'—'}</td>
+      <td style="font-family:monospace;color:${bal>0?'var(--acc)':'var(--grn)'}">${bal>0?'$'+Number(bal).toLocaleString():'✓ 已结清'}</td>
+      <td><span class="badge ${ORDER_STAGE_COLOR[o.status]||'badge-new'}">${o.status}</span></td>
+      <td style="font-size:12px">${o.shipment?.stuffDate||'—'}</td>
+      <td style="font-size:12px">${o.shipment?.blNo||'—'}</td>
+      <td style="white-space:nowrap">
+        <button class="btn btn-sm btn-ghost" onclick="openOrderDetail(${o.id})" title="详情"><i class="ti ti-eye"></i></button>
+        <button class="btn btn-sm btn-ghost" onclick="openAddPayment(${o.id})" title="收款记录"><i class="ti ti-cash"></i></button>
+        <button class="btn btn-sm btn-ghost" onclick="openShipmentEdit(${o.id})" title="出货追踪"><i class="ti ti-ship"></i></button>
+        <button class="btn btn-sm btn-ghost btn-danger" onclick="deleteOrder(${o.id})" title="删除"><i class="ti ti-trash"></i></button>
+      </td>
+    </tr>`;
+  }).join('');
+}
+function openAddOrder() {
+  const machineOpts=state.inventory.map(i=>`<option value="${i.machineId}">${i.machineId} · ${i.model}</option>`).join('');
+  const leadOpts=state.leads.map(l=>`<option value="${l.id}">${l.company} (${l.country})</option>`).join('');
+  document.getElementById('modal-container').innerHTML=`
+    <div class="moverlay" onclick="if(event.target===this)closeModal()">
+      <div class="modal" style="width:520px">
+        <div class="mhdr"><span class="mt">新增订单</span><button class="mx" onclick="closeModal()">×</button></div>
+        <div class="fcol">
+          <div class="fgrid">
+            <div class="fg"><label>关联机器</label><select id="ao-machine"><option value="">-- 选择 --</option>${machineOpts}</select></div>
+            <div class="fg"><label>关联线索</label><select id="ao-lead"><option value="">-- 选择 --</option>${leadOpts}</select></div>
+          </div>
+          <div class="fg"><label>客户公司</label><input type="text" id="ao-company" placeholder="Titanium Power..."></div>
+          <div class="fgrid">
+            <div class="fg"><label>参考 PI 编号</label><input type="text" id="ao-pi" placeholder="HXH-PI-..."></div>
+            <div class="fg"><label>订单总价 (USD)</label><input type="number" id="ao-total" placeholder="0"></div>
+          </div>
+          <div class="fgrid">
+            <div class="fg"><label>定金比例 (%)</label><input type="number" id="ao-dep-pct" value="30" min="0" max="100"></div>
+            <div class="fg"><label>初始状态</label>
+              <select id="ao-status">${ORDER_STAGES.map(s=>`<option>${s}</option>`).join('')}</select>
+            </div>
+          </div>
+          <div class="fg"><label>备注</label><input type="text" id="ao-notes" placeholder="..."></div>
+        </div>
+        <div class="mfoot">
+          <button class="btn" onclick="closeModal()">取消</button>
+          <button class="btn btn-primary" onclick="saveAddOrder()">创建订单</button>
+        </div>
+      </div>
+    </div>`;
+}
+function saveAddOrder() {
+  const company=document.getElementById('ao-company').value.trim();
+  const total=parseFloat(document.getElementById('ao-total').value)||0;
+  if(!company){alert('客户公司为必填');return;}
+  const seq=state.nextOrderSeq||1;
+  const no=`HXH-ORD-${new Date().getFullYear()}${String(new Date().getMonth()+1).padStart(2,'0')}-${String(seq).padStart(3,'0')}`;
+  const depPct=parseFloat(document.getElementById('ao-dep-pct').value)||30;
+  const ord={
+    id:state.nextId++, no, status:document.getElementById('ao-status').value,
+    machineId:document.getElementById('ao-machine').value,
+    leadId:document.getElementById('ao-lead').value,
+    company, piNo:document.getElementById('ao-pi').value.trim(),
+    total, depositPct:depPct, depositAmt:total*depPct/100,
+    notes:document.getElementById('ao-notes').value.trim(),
+    payments:[], shipment:{}, created:new Date().toISOString().split('T')[0]
+  };
+  if(!state.orders)state.orders=[];
+  state.orders.unshift(ord);
+  state.nextOrderSeq=(state.nextOrderSeq||1)+1;
+  addActivity(`订单 ${no} 创建 → ${company}`,'system');
+  saveState();closeModal();renderOrders();
+}
+function openOrderDetail(id) {
+  const o=state.orders.find(x=>x.id===id);if(!o)return;
+  const paid=(o.payments||[]).reduce((s,p)=>s+p.amount,0);
+  const bal=Math.max(0,(o.total||0)-paid);
+  const stageIdx=ORDER_STAGES.indexOf(o.status);
+  const tracker=ORDER_STAGES.map((s,i)=>`
+    <div style="display:flex;align-items:center;gap:8px;padding:6px 10px;border-radius:6px;background:${i===stageIdx?'var(--acc)':i<stageIdx?'var(--bg3)':'var(--bg2)'};cursor:pointer;margin-bottom:4px"
+      onclick="updateOrderStatus(${id},'${s}')">
+      <i class="ti ${i<stageIdx?'ti-check':i===stageIdx?'ti-circle':'ti-circle-dashed'}" style="font-size:14px;color:${i<stageIdx?'var(--grn)':i===stageIdx?'#fff':'var(--t3)'}"></i>
+      <span style="font-size:12px;font-weight:${i===stageIdx?700:400};color:${i===stageIdx?'#fff':'var(--t1)'}">${s}</span>
+    </div>`).join('');
+  const payRows=(o.payments||[]).map(p=>`<tr>
+    <td style="padding:6px 8px">${p.date}</td><td style="padding:6px 8px">${p.type}</td>
+    <td style="padding:6px 8px;font-family:monospace">$${Number(p.amount).toLocaleString()}</td>
+    <td style="padding:6px 8px;font-size:11px">${p.rate?'@'+p.rate:'—'}</td>
+    <td style="padding:6px 8px;font-size:11px;color:var(--t2)">${p.notes||'—'}</td>
+  </tr>`).join('');
+  const ship=o.shipment||{};
+  document.getElementById('modal-container').innerHTML=`
+    <div class="moverlay" onclick="if(event.target===this)closeModal()">
+      <div class="modal" style="width:620px;max-height:88vh;overflow-y:auto">
+        <div class="mhdr"><span class="mt">订单详情 — ${o.no}</span><button class="mx" onclick="closeModal()">×</button></div>
+        <div style="display:grid;grid-template-columns:200px 1fr;gap:20px">
+          <div>${tracker}</div>
+          <div>
+            <div style="font-size:12px;display:grid;grid-template-columns:110px 1fr;gap:3px;margin-bottom:12px">
+              <span style="font-weight:600">客户:</span><span>${o.company}</span>
+              <span style="font-weight:600">机器ID:</span><span>${o.machineId||'—'}</span>
+              <span style="font-weight:600">PI 编号:</span><span>${o.piNo||'—'}</span>
+              <span style="font-weight:600">订单总价:</span><span style="font-family:monospace">$${Number(o.total||0).toLocaleString()}</span>
+              <span style="font-weight:600">定金应收:</span><span style="font-family:monospace">$${Number(o.depositAmt||0).toLocaleString()} (${o.depositPct||30}%)</span>
+              <span style="font-weight:600">已收款:</span><span style="font-family:monospace;color:var(--grn)">$${paid.toLocaleString()}</span>
+              <span style="font-weight:600">待收:</span><span style="font-family:monospace;color:${bal>0?'var(--acc)':'var(--grn)'}">${bal>0?'$'+bal.toLocaleString():'✓ 已结清'}</span>
+            </div>
+            <div style="font-weight:600;font-size:12px;margin-bottom:4px">收款记录</div>
+            <table style="font-size:12px;width:100%;border-collapse:collapse;margin-bottom:8px">
+              <thead><tr style="background:var(--bg2)">
+                <th style="padding:5px 8px;font-size:10px;text-transform:uppercase">日期</th>
+                <th style="padding:5px 8px;font-size:10px;text-transform:uppercase">类型</th>
+                <th style="padding:5px 8px;font-size:10px;text-transform:uppercase">金额</th>
+                <th style="padding:5px 8px;font-size:10px;text-transform:uppercase">汇率</th>
+                <th style="padding:5px 8px;font-size:10px;text-transform:uppercase">备注</th>
+              </tr></thead>
+              <tbody>${payRows||'<tr><td colspan="5" style="padding:8px;color:var(--t3);text-align:center">暂无收款记录</td></tr>'}</tbody>
+            </table>
+            <button class="btn btn-sm" onclick="openAddPayment(${id});"><i class="ti ti-plus"></i> 添加收款</button>
+            <div style="font-weight:600;font-size:12px;margin:12px 0 4px">出货追踪</div>
+            <div style="font-size:12px;display:grid;grid-template-columns:120px 1fr;gap:3px">
+              <span style="font-weight:600">提单号 B/L:</span><span>${ship.blNo||'—'}</span>
+              <span style="font-weight:600">装柜日期:</span><span>${ship.stuffDate||'—'}</span>
+              <span style="font-weight:600">开船日期 ETD:</span><span>${ship.etd||'—'}</span>
+              <span style="font-weight:600">预计到港 ETA:</span><span>${ship.eta||'—'}</span>
+              <span style="font-weight:600">实际到港 ATA:</span><span>${ship.ata||'—'}</span>
+              <span style="font-weight:600">清关状态:</span><span>${ship.clearance||'—'}</span>
+            </div>
+            <button class="btn btn-sm" style="margin-top:8px" onclick="openShipmentEdit(${id})"><i class="ti ti-edit"></i> 编辑出货信息</button>
+          </div>
+        </div>
+        <div class="mfoot"><button class="btn btn-primary" onclick="closeModal()">关闭</button></div>
+      </div>
+    </div>`;
+}
+function updateOrderStatus(id, status) {
+  const o=state.orders.find(x=>x.id===id);if(!o)return;
+  o.status=status;
+  addActivity(`订单 ${o.no} 状态 → ${status}`,'system');
+  saveState();closeModal();renderOrders();
+}
+function openAddPayment(id) {
+  const o=state.orders.find(x=>x.id===id);if(!o)return;
+  const paid=(o.payments||[]).reduce((s,p)=>s+p.amount,0);
+  const bal=Math.max(0,(o.total||0)-paid);
+  document.getElementById('modal-container').innerHTML=`
+    <div class="moverlay" onclick="if(event.target===this)closeModal()">
+      <div class="modal" style="width:460px">
+        <div class="mhdr"><span class="mt">添加收款记录 — ${o.no}</span><button class="mx" onclick="closeModal()">×</button></div>
+        <div style="font-size:12px;color:var(--t2);margin-bottom:14px">待收余额：<strong style="color:var(--acc)">$${bal.toLocaleString()}</strong></div>
+        <div class="fcol">
+          <div class="fgrid">
+            <div class="fg"><label>到账日期 *</label><input type="date" id="pay-date" value="${new Date().toISOString().split('T')[0]}"></div>
+            <div class="fg"><label>收款类型</label>
+              <select id="pay-type"><option>定金</option><option>尾款</option><option>全款</option><option>其他</option></select>
+            </div>
+          </div>
+          <div class="fgrid">
+            <div class="fg"><label>实收金额 (USD) *</label><input type="number" id="pay-amt" placeholder="${bal||0}"></div>
+            <div class="fg"><label>汇率（选填）</label><input type="number" id="pay-rate" placeholder="e.g. 7.26" step="0.001"></div>
+          </div>
+          <div class="fg"><label>备注</label><input type="text" id="pay-notes" placeholder="银行/转账说明..."></div>
+        </div>
+        <div class="mfoot">
+          <button class="btn" onclick="closeModal()">取消</button>
+          <button class="btn btn-primary" onclick="savePayment(${id})">保存</button>
+        </div>
+      </div>
+    </div>`;
+}
+function savePayment(id) {
+  const o=state.orders.find(x=>x.id===id);if(!o)return;
+  const amt=parseFloat(document.getElementById('pay-amt').value)||0;
+  if(!amt){alert('金额为必填');return;}
+  if(!o.payments)o.payments=[];
+  o.payments.push({
+    date:document.getElementById('pay-date').value,
+    type:document.getElementById('pay-type').value,
+    amount:amt,
+    rate:parseFloat(document.getElementById('pay-rate').value)||0,
+    notes:document.getElementById('pay-notes').value.trim()
+  });
+  // 自动推进状态
+  const paid=o.payments.reduce((s,p)=>s+p.amount,0);
+  if(paid>=(o.total||0)*0.95&&o.status!=='已出货'&&o.status!=='已到港') o.status='已收尾款';
+  else if(paid>=(o.depositAmt||0)*0.95&&o.status==='已发PI') o.status='已收定金';
+  addActivity(`订单 ${o.no} 收款 $${amt.toLocaleString()}`,'system');
+  saveState();closeModal();renderOrders();
+}
+function openShipmentEdit(id) {
+  const o=state.orders.find(x=>x.id===id);if(!o)return;
+  const s=o.shipment||{};
+  document.getElementById('modal-container').innerHTML=`
+    <div class="moverlay" onclick="if(event.target===this)closeModal()">
+      <div class="modal" style="width:480px">
+        <div class="mhdr"><span class="mt">出货追踪 — ${o.no}</span><button class="mx" onclick="closeModal()">×</button></div>
+        <div class="fcol">
+          <div class="fgrid">
+            <div class="fg"><label>提单号 B/L No.</label><input type="text" id="sh-bl" value="${s.blNo||''}"></div>
+            <div class="fg"><label>装柜日期</label><input type="date" id="sh-stuff" value="${s.stuffDate||''}"></div>
+          </div>
+          <div class="fgrid">
+            <div class="fg"><label>开船日期 ETD</label><input type="date" id="sh-etd" value="${s.etd||''}"></div>
+            <div class="fg"><label>预计到港 ETA</label><input type="date" id="sh-eta" value="${s.eta||''}"></div>
+          </div>
+          <div class="fgrid">
+            <div class="fg"><label>实际到港 ATA</label><input type="date" id="sh-ata" value="${s.ata||''}"></div>
+            <div class="fg"><label>清关状态 Clearance</label>
+              <select id="sh-clear">
+                <option${!s.clearance?' selected':''}>—</option>
+                <option${s.clearance==='待清关'?' selected':''}>待清关</option>
+                <option${s.clearance==='清关中'?' selected':''}>清关中</option>
+                <option${s.clearance==='清关完成'?' selected':''}>清关完成</option>
+                <option${s.clearance==='已放行'?' selected':''}>已放行</option>
+              </select>
+            </div>
+          </div>
+          <div class="fg"><label>船公司 / 航次</label><input type="text" id="sh-vessel" value="${s.vessel||''}" placeholder="e.g. EVERGREEN / 0126E"></div>
+        </div>
+        <div class="mfoot">
+          <button class="btn" onclick="closeModal()">取消</button>
+          <button class="btn btn-primary" onclick="saveShipment(${id})">保存</button>
+        </div>
+      </div>
+    </div>`;
+}
+function saveShipment(id) {
+  const o=state.orders.find(x=>x.id===id);if(!o)return;
+  o.shipment={
+    blNo:document.getElementById('sh-bl').value.trim(),
+    stuffDate:document.getElementById('sh-stuff').value,
+    etd:document.getElementById('sh-etd').value,
+    eta:document.getElementById('sh-eta').value,
+    ata:document.getElementById('sh-ata').value,
+    clearance:document.getElementById('sh-clear').value,
+    vessel:document.getElementById('sh-vessel').value.trim()
+  };
+  const ata=o.shipment.ata;
+  if(ata) o.status='已到港';
+  else if(o.shipment.etd) o.status='已出货';
+  addActivity(`订单 ${o.no} 出货信息更新`,'system');
+  saveState();closeModal();renderOrders();
+}
+function deleteOrder(id) {
+  if(!confirm('确认删除此订单？'))return;
+  state.orders=state.orders.filter(o=>o.id!==id);
+  saveState();renderOrders();
 }
 
 // ── 系统设置（仓库 + 公司） ──────────────────────────────────
@@ -1560,7 +1995,7 @@ function openSalesHistory(id) {
 const Q_STATUS_BADGE={
   '已发送':'badge-new','已接受':'badge-won','已拒绝':'badge-lost'
 };
-const Q_TYPE_LABEL={quote:'Initial Quote',pi:'Proforma Invoice',deposit:'Deposit PI',ci:'Commercial Invoice'};
+const Q_TYPE_LABEL={quote:'初始报价 Initial Quote',pi:'形式发票 Proforma Invoice',deposit:'定金形式发票 Deposit PI',ci:'商业发票 Commercial Invoice',pl:'装箱单 Packing List'};
 
 function renderQuoteHistory() {
   const qs=state.quotes||[];
@@ -1820,28 +2255,160 @@ function saveEditLead(id) {
 }
 
 // ── 图片压缩上传 ─────────────────────────────────────────────
-let _pendingImage = null; // 临时存待保存的图片base64
+let _pendingImage = null;   // 单图兼容
+let _pendingImages = [];    // 多图（编辑中的机器图片数组）
+const IMG_LABELS=['整机正面','整机侧面','铭牌','控制面板','引擎特写','测试截图','其他'];
 
-function handleImageUpload(inputEl, previewId) {
-  const file = inputEl.files[0];
-  if (!file) return;
-  const reader = new FileReader();
-  reader.onload = function(e) {
-    const img = new Image();
-    img.onload = function() {
-      const MAX = 900;
-      const scale = Math.min(1, MAX / Math.max(img.width, img.height));
-      const canvas = document.createElement('canvas');
-      canvas.width = Math.round(img.width * scale);
-      canvas.height = Math.round(img.height * scale);
-      canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
-      _pendingImage = canvas.toDataURL('image/jpeg', 0.72);
-      const prev = document.getElementById(previewId);
-      if (prev) { prev.src = _pendingImage; prev.style.display = 'block'; }
+function _compressImage(file, cb) {
+  const reader=new FileReader();
+  reader.onload=function(e){
+    const img=new Image();
+    img.onload=function(){
+      const MAX=900,scale=Math.min(1,MAX/Math.max(img.width,img.height));
+      const canvas=document.createElement('canvas');
+      canvas.width=Math.round(img.width*scale);canvas.height=Math.round(img.height*scale);
+      canvas.getContext('2d').drawImage(img,0,0,canvas.width,canvas.height);
+      cb(canvas.toDataURL('image/jpeg',0.72));
     };
-    img.src = e.target.result;
+    img.src=e.target.result;
   };
   reader.readAsDataURL(file);
+}
+function handleImageUpload(inputEl, previewId) {
+  const file=inputEl.files[0];if(!file)return;
+  _compressImage(file,url=>{
+    _pendingImage=url;
+    const prev=document.getElementById(previewId);
+    if(prev){prev.src=url;prev.style.display='block';}
+  });
+}
+function addPendingImage(inputEl, gridId) {
+  const file=inputEl.files[0];if(!file)return;
+  if(_pendingImages.length>=10){alert('最多上传10张图片');inputEl.value='';return;}
+  const labelSel=inputEl.parentElement.querySelector('select')||document.getElementById(gridId.replace('-grid','-img-label'));
+  const label=labelSel?labelSel.value:'其他';
+  _compressImage(file,url=>{
+    _pendingImages.push({url,label,uploadDate:new Date().toISOString().split('T')[0]});
+    renderPendingGrid(gridId);
+    inputEl.value='';
+  });
+}
+function removePendingImage(idx, gridId) {
+  _pendingImages.splice(idx,1);
+  renderPendingGrid(gridId);
+}
+function renderPendingGrid(gridId) {
+  const grid=document.getElementById(gridId);if(!grid)return;
+  grid.innerHTML=_pendingImages.map((img,i)=>`
+    <div style="position:relative;aspect-ratio:1;border-radius:6px;overflow:hidden;border:1px solid var(--bdr)">
+      <img src="${img.url}" style="width:100%;height:100%;object-fit:cover">
+      <div style="position:absolute;bottom:0;left:0;right:0;background:rgba(0,0,0,.6);color:#fff;font-size:9px;padding:2px 4px;white-space:nowrap;overflow:hidden">${img.label}</div>
+      <button onclick="removePendingImage(${i},'${gridId}')" style="position:absolute;top:2px;right:2px;background:rgba(192,57,43,.9);color:#fff;border:none;border-radius:50%;width:16px;height:16px;font-size:10px;cursor:pointer;line-height:1;display:flex;align-items:center;justify-content:center">×</button>
+    </div>`).join('');
+  const cnt=document.getElementById(gridId.replace('-grid','-img-count'));
+  if(cnt)cnt.textContent=`已上传 ${_pendingImages.length}/10 张`;
+}
+function _exportCheckboxValues(name) {
+  return Array.from(document.querySelectorAll(`input[name="${name}"]:checked`)).map(c=>c.value);
+}
+function _setExportCheckboxes(name,vals=[]) {
+  document.querySelectorAll(`input[name="${name}"]`).forEach(c=>{c.checked=vals.includes(c.value);});
+}
+function toggleIspm15(prefix) {
+  const v=document.getElementById(`${prefix}-woodpacking`)?.value||'';
+  const g=document.getElementById(`${prefix}-ispm-group`);
+  if(g)g.style.display=(v!=='不需要')?'':'none';
+}
+function _exportHtml(prefix, ex={}) {
+  return `
+    <div style="border-top:1px solid var(--bdr);padding-top:10px;margin-top:6px">
+      <div style="font-size:11px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">出口处理 Export Handling</div>
+      <div class="fgrid">
+        <div class="fg"><label>熏蒸 Fumigation</label>
+          <select id="${prefix}-fumigation" onchange="document.getElementById('${prefix}-fumigation-details').style.display=this.value==='已完成'?'':'none'">
+            ${['未安排','已安排','已完成'].map(s=>`<option${ex.fumigation===s?' selected':''}>${s}</option>`).join('')}
+          </select>
+        </div>
+        <div class="fg"><label>防锈 Anti-rust</label>
+          <select id="${prefix}-antirust">
+            ${['未处理','已处理'].map(s=>`<option${ex.antiRust===s?' selected':''}>${s}</option>`).join('')}
+          </select>
+        </div>
+      </div>
+      <div id="${prefix}-fumigation-details" style="display:${ex.fumigation==='已完成'?'':'none'}">
+        <div class="fgrid">
+          <div class="fg"><label>完成日期</label><input type="date" id="${prefix}-fum-date" value="${ex.fumDate||''}"></div>
+          <div class="fg"><label>证书编号</label><input type="text" id="${prefix}-fum-cert" value="${ex.fumCert||''}" placeholder="证书编号"></div>
+        </div>
+      </div>
+      <div class="fgrid">
+        <div class="fg"><label>木质包装 Wooden Packing</label>
+          <select id="${prefix}-woodpacking" onchange="toggleIspm15('${prefix}')">
+            ${['不需要','需要-待制作','已完成'].map(s=>`<option${ex.woodenPacking===s?' selected':''}>${s}</option>`).join('')}
+          </select>
+        </div>
+        <div class="fg" id="${prefix}-ispm-group" style="display:${ex.woodenPacking&&ex.woodenPacking!=='不需要'?'':'none'}">
+          <label>ISPM 15 合规</label>
+          <select id="${prefix}-ispm15">
+            <option value="0"${!ex.ispm15?' selected':''}>否</option><option value="1"${ex.ispm15?' selected':''}>是</option>
+          </select>
+        </div>
+      </div>
+      <div class="fg"><label>包装类型 Packing Type（可多选）</label>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px;margin-top:4px;font-size:12px">
+          ${['裸装 Nude/Bare','木框架 Wooden Frame','木箱 Wooden Case','铁框架 Steel Frame','铁箱 Steel Case','托盘 Pallet','混合包装 Combined'].map(p=>`
+          <label style="display:flex;align-items:center;gap:4px;font-weight:400;cursor:pointer">
+            <input type="checkbox" name="${prefix}-packtype" value="${p}"${(ex.packingType||[]).includes(p)?' checked':''}> ${p.split(' ')[0]}
+          </label>`).join('')}
+        </div>
+      </div>
+      <div class="fg"><label>包装备注 Packing Notes</label>
+        <textarea id="${prefix}-pack-notes" rows="2" placeholder="尺寸/规格/特殊要求...">${ex.packingNotes||''}</textarea>
+      </div>
+      <div class="fg"><label>拆机说明 Dismantling Notes</label>
+        <textarea id="${prefix}-dismantle" rows="2" placeholder="哪些部件需要拆卸才能装箱...">${ex.dismantlingNotes||''}</textarea>
+      </div>
+      <label style="display:flex;align-items:center;gap:8px;font-size:12px;cursor:pointer;margin-top:4px">
+        <input type="checkbox" id="${prefix}-oog"${ex.isOOG?' checked':''}>
+        <span>超限货物 OOG (Out of Gauge) — 货物超出集装箱标准尺寸，需特殊舱位</span>
+      </label>
+      ${ex.isOOG?`<div style="background:#fef3e2;border-left:3px solid #f59e0b;padding:6px 10px;font-size:11px;margin-top:4px">⚠ 超限货物须提前告知货代，安排特殊舱位及报价</div>`:''}
+    </div>`;
+}
+function _readExportFields(prefix) {
+  return {
+    fumigation:document.getElementById(`${prefix}-fumigation`)?.value||'未安排',
+    fumDate:document.getElementById(`${prefix}-fum-date`)?.value||'',
+    fumCert:document.getElementById(`${prefix}-fum-cert`)?.value||'',
+    antiRust:document.getElementById(`${prefix}-antirust`)?.value||'未处理',
+    woodenPacking:document.getElementById(`${prefix}-woodpacking`)?.value||'不需要',
+    ispm15:document.getElementById(`${prefix}-ispm15`)?.value==='1',
+    packingType:_exportCheckboxValues(`${prefix}-packtype`),
+    packingNotes:document.getElementById(`${prefix}-pack-notes`)?.value||'',
+    dismantlingNotes:document.getElementById(`${prefix}-dismantle`)?.value||'',
+    isOOG:document.getElementById(`${prefix}-oog`)?.checked||false
+  };
+}
+function _multiImgHtml(prefix, images=[]) {
+  return `
+    <div class="fg"><label>机器图片（最多10张，含分类标签）</label>
+      <div id="${prefix}-img-grid" style="display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin-bottom:8px">${
+        images.map((img,i)=>`
+          <div style="position:relative;aspect-ratio:1;border-radius:6px;overflow:hidden;border:1px solid var(--bdr)">
+            <img src="${img.url||img}" style="width:100%;height:100%;object-fit:cover">
+            <div style="position:absolute;bottom:0;left:0;right:0;background:rgba(0,0,0,.6);color:#fff;font-size:9px;padding:2px 4px">${img.label||''}</div>
+            <button onclick="removePendingImage(${i},'${prefix}-img-grid')" style="position:absolute;top:2px;right:2px;background:rgba(192,57,43,.9);color:#fff;border:none;border-radius:50%;width:16px;height:16px;font-size:10px;cursor:pointer;line-height:1">×</button>
+          </div>`).join('')}
+      </div>
+      <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+        <select id="${prefix}-img-label" style="font-size:12px">
+          ${IMG_LABELS.map(l=>`<option>${l}</option>`).join('')}
+        </select>
+        <input type="file" id="${prefix}-img-file" accept="image/*" style="font-size:12px;flex:1"
+          onchange="addPendingImage(this,'${prefix}-img-grid')">
+      </div>
+      <div id="${prefix}-img-count" style="font-size:11px;color:var(--t3);margin-top:4px">已上传 ${images.length}/10 张</div>
+    </div>`;
 }
 
 function warehouseOptions(selected='') {
@@ -1872,7 +2439,7 @@ function getWarehouse(selId, inputId) {
 
 function openAddStock() {
   const autoId='HXH-'+new Date().getFullYear()+'-'+String(state.nextMachineSeq||1).padStart(3,'0');
-  _pendingImage = null;
+  _pendingImage = null; _pendingImages = [];
   document.getElementById('modal-container').innerHTML=`
     <div class="moverlay" onclick="if(event.target===this)closeModal()">
       <div class="modal" style="width:600px">
@@ -1912,19 +2479,14 @@ function openAddStock() {
             <div class="fg"><label>高 (H)</label><input type="number" id="ns-hei" placeholder="2.1" step="0.01"></div>
             <div class="fg"><label>净重 (kg)</label><input type="number" id="ns-weight" placeholder="5800"></div>
           </div>
-          <div class="fgrid">
-            <div class="fg"><label>所在仓库</label>
-              <select id="ns-warehouse" onchange="toggleWarehouse(this,'ns-warehouse-custom')">
-                ${warehouseOptions()}
-              </select>
-              <input type="text" id="ns-warehouse-custom" placeholder="填写仓库名称" style="display:none;margin-top:6px">
-            </div>
-            <div class="fg"><label>机器图片</label>
-              <input type="file" id="ns-img-file" accept="image/*" style="font-size:12px;padding:4px"
-                onchange="handleImageUpload(this,'ns-img-preview')">
-              <img id="ns-img-preview" style="display:none;margin-top:6px;max-height:80px;border-radius:4px;border:1px solid var(--bdr)">
-            </div>
+          <div class="fg"><label>所在仓库</label>
+            <select id="ns-warehouse" onchange="toggleWarehouse(this,'ns-warehouse-custom')">
+              ${warehouseOptions()}
+            </select>
+            <input type="text" id="ns-warehouse-custom" placeholder="填写仓库名称" style="display:none;margin-top:6px">
           </div>
+          ${_multiImgHtml('ns')}
+          ${_exportHtml('ns')}
           ${opSelect('ns')}
         </div>
         <div class="mfoot">
@@ -1938,6 +2500,8 @@ function openAddStock() {
 function editStock(id) {
   const i=state.inventory.find(x=>x.id===id);if(!i)return;
   _pendingImage=null;
+  // 加载已有图片到 _pendingImages（兼容旧格式单图）
+  _pendingImages=i.images?.length?[...i.images]:(i.image?[{url:i.image,label:'整机正面',uploadDate:''}]:[]);
   const isCustomWh=i.warehouse&&!['东莞仓','美国仓','东南亚仓','海外仓'].includes(i.warehouse);
   document.getElementById('modal-container').innerHTML=`
     <div class="moverlay" onclick="if(event.target===this)closeModal()">
@@ -1992,23 +2556,16 @@ function editStock(id) {
             <div class="fg"><label>高 (H)</label><input type="number" id="es-hei" value="${i.height||''}" step="0.01"></div>
             <div class="fg"><label>净重 (kg)</label><input type="number" id="es-weight" value="${i.weight||''}"></div>
           </div>
-          <div class="fgrid">
-            <div class="fg"><label>所在仓库</label>
-              <select id="es-warehouse" onchange="toggleWarehouse(this,'es-warehouse-custom')">
-                ${warehouseOptions(i.warehouse||'')}
-              </select>
-              <input type="text" id="es-warehouse-custom" placeholder="填写仓库名称"
-                value="${isCustomWh?i.warehouse:''}"
-                style="display:${isCustomWh?'':'none'};margin-top:6px">
-            </div>
-            <div class="fg"><label>机器图片</label>
-              ${i.image?`<img src="${i.image}" style="max-height:60px;border-radius:4px;border:1px solid var(--bdr);margin-bottom:6px;display:block">
-              <small style="color:var(--t3)">上传新图片将覆盖旧图</small><br>`:''}
-              <input type="file" id="es-img-file" accept="image/*" style="font-size:12px;padding:4px;margin-top:4px"
-                onchange="handleImageUpload(this,'es-img-preview')">
-              <img id="es-img-preview" style="display:none;margin-top:6px;max-height:60px;border-radius:4px;border:1px solid var(--bdr)">
-            </div>
+          <div class="fg"><label>所在仓库</label>
+            <select id="es-warehouse" onchange="toggleWarehouse(this,'es-warehouse-custom')">
+              ${warehouseOptions(i.warehouse||'')}
+            </select>
+            <input type="text" id="es-warehouse-custom" placeholder="填写仓库名称"
+              value="${isCustomWh?i.warehouse:''}"
+              style="display:${isCustomWh?'':'none'};margin-top:6px">
           </div>
+          ${_multiImgHtml('es',_pendingImages)}
+          ${_exportHtml('es',i.exportData||{})}
           ${opSelect('es')}
         </div>
         <div class="mfoot">
@@ -2044,9 +2601,12 @@ function saveStock() {
     voltage:document.getElementById('ns-voltage').value,
     frequency:document.getElementById('ns-freq').value,
     warehouse:getWarehouse('ns-warehouse','ns-warehouse-custom'),
-    image:_pendingImage||''
+    image:_pendingImages[0]?.url||_pendingImage||'',
+    images:[..._pendingImages],
+    exportData:_readExportFields('ns'),
+    salesLog:[]
   });
-  _pendingImage=null;
+  _pendingImage=null;_pendingImages=[];
   addActivity(`新增库存：${mid} ${m}`,'system',getOp('ns'));saveState();closeModal();render();
 }
 
@@ -2068,8 +2628,10 @@ function saveEditStock(id) {
   i.voltage=document.getElementById('es-voltage').value;
   i.frequency=document.getElementById('es-freq').value;
   i.warehouse=getWarehouse('es-warehouse','es-warehouse-custom');
-  if(_pendingImage) i.image=_pendingImage;
-  _pendingImage=null;
+  i.images=[..._pendingImages];
+  i.image=_pendingImages[0]?.url||i.image||'';
+  i.exportData=_readExportFields('es');
+  _pendingImage=null;_pendingImages=[];
   addActivity(`更新库存：${i.machineId} ${i.model}`,'system',getOp('es'));
   saveState();closeModal();render();
 }
