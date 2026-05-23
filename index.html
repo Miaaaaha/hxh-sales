@@ -205,9 +205,12 @@ label{font-size:12px;font-weight:500;color:var(--t2);margin-bottom:4px;display:b
       <div class="logo-icon">⚡</div>
       HXH Power 销售系统
     </div>
-    <div class="sync-badge">
-      <div class="sdot" id="sdot"></div>
-      <span id="slabel">本地</span>
+    <div style="display:flex;align-items:center;gap:10px">
+      <button class="btn btn-sm btn-ghost" onclick="openSettings()" title="系统设置"><i class="ti ti-settings"></i> 设置</button>
+      <div class="sync-badge">
+        <div class="sdot" id="sdot"></div>
+        <span id="slabel">本地</span>
+      </div>
     </div>
   </header>
 
@@ -327,7 +330,7 @@ label{font-size:12px;font-weight:500;color:var(--t2);margin-bottom:4px;display:b
                 </div>
               </div>
               <div class="fg"><label>Select Model</label>
-                <select id="q-model" onchange="updateQuote()"><option value="">-- Select from inventory --</option></select>
+                <select id="q-model" onchange="onMachineSelect()"><option value="">-- Select from inventory --</option></select>
               </div>
               <div class="fgrid">
                 <div class="fg"><label>Quantity</label><input type="number" id="q-qty" value="1" min="1" oninput="updateQuote()"></div>
@@ -354,6 +357,34 @@ label{font-size:12px;font-weight:500;color:var(--t2);margin-bottom:4px;display:b
                 <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--t3);margin-top:4px;padding:0 4px">
                   <span>Deposit 30%: <strong id="q-deposit-display">USD 0.00</strong></span>
                   <span>Balance 70%: <strong id="q-balance-display">USD 0.00</strong></span>
+                </div>
+              </div>
+              <!-- 物流 & 交货 -->
+              <div style="border-top:1px solid var(--bdr);padding-top:10px;margin-top:4px">
+                <div style="font-size:11px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">物流 &amp; 交货</div>
+                <div class="fgrid">
+                  <div class="fg"><label>交货期</label><input type="text" id="q-delivery-time" placeholder="e.g. 30 days after deposit" oninput="updateQuote()"></div>
+                  <div class="fg"><label>提货方式</label>
+                    <select id="q-pickup-method" onchange="updateQuote()">
+                      <option value="">-- 选择 --</option>
+                      <option>买方自提</option>
+                      <option>送货至港</option>
+                      <option>货代上门</option>
+                    </select>
+                  </div>
+                </div>
+                <div class="fg"><label>提货地址（从仓库自动带入，可修改）</label>
+                  <textarea id="q-pickup-addr" rows="2" placeholder="仓库详细地址..." oninput="updateQuote()"></textarea>
+                </div>
+                <div class="fg"><label>提货要求</label><input type="text" id="q-pickup-req" placeholder="e.g. 需提前24h预约" oninput="updateQuote()"></div>
+                <div class="fg"><label>验货安排</label>
+                  <select id="q-inspection" onchange="updateQuote()">
+                    <option value="">-- 选择 --</option>
+                    <option>支持买方验货</option>
+                    <option>视频验货</option>
+                    <option>第三方验货</option>
+                    <option>不支持验货</option>
+                  </select>
                 </div>
               </div>
               <div class="fg" id="ref-pi-group" style="display:none">
@@ -521,7 +552,17 @@ let state = {
   nextId: 10,
   nextMachineSeq: 10,
   nextDocSeq: 1,
-  nextCompanyId: 3
+  nextCompanyId: 3,
+  warehouses: [
+    {id:1,name:'东莞本部仓',address:'No.6, Lane 3, Shatian Environmental Protection Middle Road, Shatian Town, Dongguan City, Guangdong Province, China'},
+    {id:2,name:'东莞仓',address:'No.6, Lane 3, Shatian Environmental Protection Middle Road, Shatian Town, Dongguan City, Guangdong Province, China'},
+    {id:3,name:'广州仓',address:''},
+    {id:4,name:'香港仓',address:''},
+    {id:5,name:'美国仓',address:''},
+    {id:6,name:'东南亚仓',address:''},
+    {id:7,name:'海外仓',address:''},
+  ],
+  nextWarehouseId: 8
 };
 
 const FREIGHT = {CIF:{Lagos:2800,Mombasa:3200,Tema:2900,'Dar es Salaam':3400,Jeddah:2200,Dubai:2000,Karachi:2600,Manila:3100}};
@@ -564,6 +605,13 @@ function genMachineId() {
 function migrateState(s) {
   if (!s.nextMachineSeq) s.nextMachineSeq = 1;
   if (!s.nextId) s.nextId = 10;
+  if (!s.warehouses) s.warehouses = [
+    {id:1,name:'东莞本部仓',address:'No.6, Lane 3, Shatian Environmental Protection Middle Road, Shatian Town, Dongguan City, Guangdong Province, China'},
+    {id:2,name:'东莞仓',address:'No.6, Lane 3, Shatian Environmental Protection Middle Road, Shatian Town, Dongguan City, Guangdong Province, China'},
+    {id:3,name:'广州仓',address:''},{id:4,name:'香港仓',address:''},
+    {id:5,name:'美国仓',address:''},{id:6,name:'东南亚仓',address:''},{id:7,name:'海外仓',address:''},
+  ];
+  if (!s.nextWarehouseId) s.nextWarehouseId = 8;
   // 检测是否为旧格式（有qty、无machineId）
   if (s.inventory && s.inventory.length && s.inventory[0].qty !== undefined && !s.inventory[0].machineId) {
     const year = new Date().getFullYear();
@@ -880,6 +928,17 @@ function fmtDate(d=new Date()) { return d.toLocaleDateString('en-GB',{day:'2-dig
 function addDays(d,n) { const r=new Date(d); r.setDate(r.getDate()+n); return r; }
 function leadTime(port) { return /Nigeria|Kenya|Ghana|Tanzania|Cameroon/i.test(port)?'25–40':'15–30'; }
 
+function onMachineSelect() {
+  const machineId=document.getElementById('q-model').value;
+  const item=machineId?state.inventory.find(x=>x.machineId===machineId):null;
+  const addrEl=document.getElementById('q-pickup-addr');
+  if(addrEl&&item) {
+    const addr=getPickupAddress(item.warehouse);
+    if(addr) addrEl.value=addr;
+  }
+  updateQuote();
+}
+
 function calcValues() {
   const machineId=document.getElementById('q-model').value;
   if(!machineId) return null;
@@ -900,12 +959,20 @@ function calcValues() {
   const otherAmt     =parseFloat(document.getElementById('q-other-amt')?.value)||0;
   const total        =priceMachine+priceFreight+priceInsurance+otherAmt;
   const unitPrice    =qty>1?(priceMachine/qty):priceMachine;
+  // 物流字段
+  const deliveryTime =document.getElementById('q-delivery-time')?.value.trim()||'';
+  const pickupMethod =document.getElementById('q-pickup-method')?.value||'';
+  const pickupAddr   =document.getElementById('q-pickup-addr')?.value.trim()||'';
+  const pickupReq    =document.getElementById('q-pickup-req')?.value.trim()||'';
+  const inspection   =document.getElementById('q-inspection')?.value||'';
   const sc=getSellerContact();
   const ciCompanyId=parseInt(document.getElementById('ci-company-sel')?.value||0);
   const ciCompany=(state.companies||[]).find(c=>c.id===ciCompanyId)||null;
   return {item,qty,inco,company,address,port,loading,refPi,
           priceMachine,priceFreight,priceInsurance,otherName,otherAmt,
-          unitPrice,total,deposit:total*0.3,balance:total*0.7,sc,ciCompany};
+          unitPrice,total,deposit:total*0.3,balance:total*0.7,
+          deliveryTime,pickupMethod,pickupAddr,pickupReq,inspection,
+          sc,ciCompany};
 }
 
 const SELLER_ADDR='No.6, Lane 3, Shatian Environmental Protection Middle Road, Shatian Town, Dongguan City, Guangdong Province, China';
@@ -992,6 +1059,22 @@ function printDoc() {
   setTimeout(()=>w.print(),400);
 }
 
+function logisticsBlock(v) {
+  if(!v.deliveryTime&&!v.pickupMethod&&!v.pickupAddr&&!v.pickupReq&&!v.inspection) return '';
+  return `<div style="margin-top:12px;page-break-inside:avoid">
+    <div style="font-weight:700;font-size:10.5px;text-transform:uppercase;letter-spacing:.07em;color:#888;margin-bottom:6px">Delivery &amp; Logistics</div>
+    <div style="background:#f8f7f4;border:1px solid #e4e1db;border-radius:6px;padding:10px 14px;font-size:11.5px">
+      <div class="doc-kv">
+        ${v.deliveryTime?`<span>Delivery Lead Time:</span><span>${v.deliveryTime}</span>`:''}
+        ${v.pickupMethod?`<span>Pickup / Delivery:</span><span>${v.pickupMethod}</span>`:''}
+        ${v.pickupAddr?`<span>Pickup Address:</span><span>${v.pickupAddr.replace(/\n/g,'<br>')}</span>`:''}
+        ${v.pickupReq?`<span>Pickup Requirements:</span><span>${v.pickupReq}</span>`:''}
+        ${v.inspection?`<span>Inspection:</span><span>${v.inspection}</span>`:''}
+      </div>
+    </div>
+  </div>`;
+}
+
 function machineSpecBlock(item) {
   const specs=[];
   if(item.machineId) specs.push(`Machine ID: <strong>${item.machineId}</strong>`);
@@ -1052,6 +1135,7 @@ function renderInitialQuote(v) {
         <span>Inspection:</span><span>Available upon request prior to shipment</span>
       </div>
     </div>
+    ${logisticsBlock(v)}
     <div style="font-size:11.5px;margin-top:14px;color:#555">We look forward to your valued confirmation. Please feel free to contact us for any queries.</div>
     <div style="display:flex;justify-content:flex-end;margin-top:24px">
       <div class="doc-sign"><br><br><span style="font-weight:600">Authorized Signature</span><br><span style="color:#888">HXH Power Equipment Co., Ltd.</span><br><span style="color:#888">${fmtDate(today)}</span></div>
@@ -1108,6 +1192,7 @@ function renderPI(v) {
         <span>Lead Time:</span><span>${leadTime(v.port)} working days from receipt of deposit</span>
       </div>
     </div>
+    ${logisticsBlock(v)}
     <div style="margin-top:12px;font-size:12px"><strong>Payment Schedule:</strong>
       <div style="background:#f8f7f4;border:1px solid #e4e1db;border-radius:6px;padding:10px 14px;margin-top:6px;font-size:11.5px;line-height:2">
         &bull; <strong>30% Deposit: ${usd(v.deposit)}</strong> — due within 5 business days of PI receipt<br>
@@ -1251,6 +1336,90 @@ function renderCI(v) {
   </div>`;
 }
 
+// ── 系统设置（仓库 + 公司） ──────────────────────────────────
+function openSettings() {
+  document.getElementById('modal-container').innerHTML=`
+    <div class="moverlay" onclick="if(event.target===this)closeModal()">
+      <div class="modal" style="width:580px;max-height:85vh;overflow-y:auto">
+        <div class="mhdr"><span class="mt">系统设置</span><button class="mx" onclick="closeModal()">×</button></div>
+        <!-- 仓库地址 -->
+        <div style="font-size:13px;font-weight:700;color:var(--t1);margin-bottom:12px">🏭 仓库地址配置</div>
+        <div id="wh-list">${_whRows()}</div>
+        <div style="border-top:1px solid var(--bdr);padding-top:14px;margin-top:4px">
+          <div style="font-size:12px;font-weight:600;color:var(--t2);margin-bottom:10px">新增仓库</div>
+          <div class="fgrid">
+            <div class="fg"><label>仓库名称 *</label><input type="text" id="nwh-name" placeholder="e.g. 深圳仓"></div>
+            <div class="fg"><label>详细地址</label><input type="text" id="nwh-addr" placeholder="完整地址"></div>
+          </div>
+          <div style="text-align:right;margin-top:8px">
+            <button class="btn btn-primary btn-sm" onclick="addWarehouse()"><i class="ti ti-plus"></i> 添加</button>
+          </div>
+        </div>
+        <!-- 公司抬头 -->
+        <div style="border-top:2px solid var(--bdr);padding-top:16px;margin-top:16px;font-size:13px;font-weight:700;color:var(--t1);margin-bottom:12px">🏢 发票发货方抬头</div>
+        <div id="co-list">${_coRows()}</div>
+        <div style="border-top:1px solid var(--bdr);padding-top:14px;margin-top:4px">
+          <div style="font-size:12px;font-weight:600;color:var(--t2);margin-bottom:10px">新增发货方</div>
+          <div class="fcol">
+            <div class="fg"><label>公司名称 *</label><input type="text" id="nc-name" placeholder="Company Name"></div>
+            <div class="fg"><label>地址 *</label><textarea id="nc-addr" rows="2" placeholder="公司地址"></textarea></div>
+            <div class="fg"><label>网站（选填）</label><input type="text" id="nc-web" placeholder="www.example.com"></div>
+          </div>
+          <div style="text-align:right;margin-top:8px">
+            <button class="btn btn-primary btn-sm" onclick="addCompany()"><i class="ti ti-plus"></i> 添加</button>
+          </div>
+        </div>
+        <div class="mfoot"><button class="btn btn-primary" onclick="closeModal()">完成</button></div>
+      </div>
+    </div>`;
+}
+function _whRows() {
+  return (state.warehouses||[]).map(w=>`
+    <div style="border:1px solid var(--bdr);border-radius:8px;padding:10px 12px;margin-bottom:8px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+        <div style="font-weight:600;font-size:13px">${w.name}</div>
+        <button class="btn btn-sm btn-ghost btn-danger" onclick="deleteWarehouse(${w.id})" title="删除"><i class="ti ti-trash"></i></button>
+      </div>
+      <input type="text" value="${w.address||''}" placeholder="填写详细地址..."
+        style="width:100%;padding:6px 10px;font-size:12px;border:1px solid var(--bdr);border-radius:6px;font-family:inherit"
+        onchange="saveWarehouseAddr(${w.id},this.value)">
+    </div>`).join('');
+}
+function _coRows() {
+  return (state.companies||[]).map(c=>`
+    <div style="border:1px solid var(--bdr);border-radius:8px;padding:10px 12px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:flex-start;gap:10px">
+      <div>
+        <div style="font-weight:600;font-size:13px">${c.name}</div>
+        <div style="font-size:11px;color:var(--t2);margin-top:2px">${c.address}</div>
+        ${c.website?`<div style="font-size:11px;color:var(--blu)">${c.website}</div>`:''}
+      </div>
+      <button class="btn btn-sm btn-ghost btn-danger" onclick="deleteCompany(${c.id})" ${state.companies.length<=1?'disabled':''} title="删除"><i class="ti ti-trash"></i></button>
+    </div>`).join('');
+}
+function _refreshSettingsLists() {
+  const wl=document.getElementById('wh-list');if(wl)wl.innerHTML=_whRows();
+  const cl=document.getElementById('co-list');if(cl)cl.innerHTML=_coRows();
+}
+function addWarehouse() {
+  const name=document.getElementById('nwh-name').value.trim();
+  if(!name){alert('仓库名称为必填');return;}
+  if(!state.warehouses)state.warehouses=[];
+  if(state.warehouses.find(w=>w.name===name)){alert('同名仓库已存在');return;}
+  state.warehouses.push({id:state.nextWarehouseId++,name,address:document.getElementById('nwh-addr').value.trim()});
+  saveState();
+  document.getElementById('nwh-name').value='';document.getElementById('nwh-addr').value='';
+  _refreshSettingsLists();
+}
+function deleteWarehouse(id) {
+  if(!confirm('确认删除此仓库？'))return;
+  state.warehouses=state.warehouses.filter(w=>w.id!==id);
+  saveState();_refreshSettingsLists();
+}
+function saveWarehouseAddr(id,addr) {
+  const wh=(state.warehouses||[]).find(w=>w.id===id);
+  if(wh){wh.address=addr.trim();saveState();}
+}
+
 // ── 公司抬头管理 ─────────────────────────────────────────────
 function openManageCompanies() {
   const rows=(state.companies||[]).map(c=>`
@@ -1282,19 +1451,26 @@ function openManageCompanies() {
       </div>
     </div>`;
 }
+function _onCompanyChange() {
+  // 若在 Settings 弹窗中则刷新列表，否则重开旧弹窗
+  if(document.getElementById('co-list')) _refreshSettingsLists();
+  else openManageCompanies();
+}
 function addCompany() {
   const name=document.getElementById('nc-name').value.trim();
   const addr=document.getElementById('nc-addr').value.trim();
   if(!name||!addr){alert('公司名和地址为必填');return;}
   if(!state.companies)state.companies=[];
   state.companies.push({id:state.nextCompanyId++,name,address:addr,website:document.getElementById('nc-web').value.trim()});
-  saveState();openManageCompanies();
+  document.getElementById('nc-name').value='';document.getElementById('nc-addr').value='';
+  if(document.getElementById('nc-web'))document.getElementById('nc-web').value='';
+  saveState();_onCompanyChange();
 }
 function deleteCompany(id) {
   if((state.companies||[]).length<=1){alert('至少保留一家公司');return;}
   if(!confirm('确认删除此发货方？'))return;
   state.companies=state.companies.filter(c=>c.id!==id);
-  saveState();openManageCompanies();
+  saveState();_onCompanyChange();
 }
 
 // ── 销售日志 ─────────────────────────────────────────────────
@@ -1669,11 +1845,17 @@ function handleImageUpload(inputEl, previewId) {
 }
 
 function warehouseOptions(selected='') {
-  const opts=['东莞仓','美国仓','东南亚仓','海外仓'];
-  const isCustom = selected && !opts.includes(selected);
-  return `
-    ${opts.map(o=>`<option${selected===o?' selected':''}>${o}</option>`).join('')}
-    <option value="__custom"${isCustom?' selected':''}>自定义...</option>`;
+  const names=(state.warehouses||[]).map(w=>w.name);
+  // 兼容旧数据：若选中值不在列表中也不是自定义，追加到列表末尾
+  if(selected&&selected!=='__custom'&&!names.includes(selected)) names.push(selected);
+  const isCustom = selected && !names.includes(selected);
+  return names.map(n=>`<option${selected===n?' selected':''}>${n}</option>`).join('')+
+    `<option value="__custom"${isCustom?' selected':''}>自定义...</option>`;
+}
+function getPickupAddress(warehouseName) {
+  if(!warehouseName) return '';
+  const wh=(state.warehouses||[]).find(w=>w.name===warehouseName);
+  return wh?wh.address:'';
 }
 
 function toggleWarehouse(sel, inputId) {
