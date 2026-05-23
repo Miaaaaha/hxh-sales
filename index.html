@@ -6,6 +6,7 @@
 <title>HXH Power 销售系统</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.34.0/dist/tabler-icons.min.css">
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
 <style>
 :root{
@@ -158,43 +159,56 @@ label{font-size:12px;font-weight:500;color:var(--t2);margin-bottom:4px;display:b
 </head>
 <body>
 
-<!-- 密码保护 -->
-<div id="pw-overlay" style="position:fixed;inset:0;background:#f5f4f0;display:flex;align-items:center;justify-content:center;z-index:9999">
+<!-- Firebase 登录 -->
+<div id="auth-overlay" style="position:fixed;inset:0;background:#f5f4f0;display:flex;align-items:center;justify-content:center;z-index:9999">
   <div style="background:#fff;border-radius:16px;padding:40px 48px;box-shadow:0 8px 32px rgba(0,0,0,.12);width:380px;max-width:92vw;text-align:center;border:1px solid #e4e1db">
     <div style="width:52px;height:52px;background:#c0392b;border-radius:12px;display:flex;align-items:center;justify-content:center;margin:0 auto 16px;font-size:24px">🔒</div>
     <h1 style="font-size:20px;font-weight:700;color:#1c1b18;margin-bottom:6px">HXH Power 销售系统</h1>
-    <p style="font-size:13px;color:#6b6866;margin-bottom:24px">请输入访问密码继续</p>
-    <input id="pw-input" type="password" placeholder="输入密码" autocomplete="current-password"
-      style="width:100%;padding:10px 14px;font-size:14px;border:1.5px solid #ccc8c1;border-radius:8px;outline:none;margin-bottom:8px;font-family:inherit;transition:border-color .2s"
-      onkeydown="if(event.key==='Enter')checkPw()"
+    <p style="font-size:13px;color:#6b6866;margin-bottom:24px">请登录继续</p>
+    <input id="auth-email" type="email" placeholder="邮箱地址" autocomplete="email"
+      style="width:100%;padding:10px 14px;font-size:14px;border:1.5px solid #ccc8c1;border-radius:8px;outline:none;margin-bottom:12px;font-family:inherit;transition:border-color .2s"
+      onkeydown="if(event.key==='Enter')document.getElementById('auth-password').focus()"
       onfocus="this.style.borderColor='#c0392b';this.style.boxShadow='0 0 0 3px rgba(192,57,43,.1)'"
       onblur="this.style.borderColor='#ccc8c1';this.style.boxShadow='none'">
-    <div id="pw-error" style="color:#c0392b;font-size:12px;margin-bottom:10px;min-height:18px;text-align:left"></div>
-    <button onclick="checkPw()"
-      style="width:100%;padding:11px;font-size:14px;font-weight:600;background:#c0392b;color:#fff;border:none;border-radius:8px;cursor:pointer;font-family:inherit"
+    <input id="auth-password" type="password" placeholder="密码" autocomplete="current-password"
+      style="width:100%;padding:10px 14px;font-size:14px;border:1.5px solid #ccc8c1;border-radius:8px;outline:none;margin-bottom:8px;font-family:inherit;transition:border-color .2s"
+      onkeydown="if(event.key==='Enter')firebaseLogin()"
+      onfocus="this.style.borderColor='#c0392b';this.style.boxShadow='0 0 0 3px rgba(192,57,43,.1)'"
+      onblur="this.style.borderColor='#ccc8c1';this.style.boxShadow='none'">
+    <div id="auth-error" style="color:#c0392b;font-size:12px;margin-bottom:10px;min-height:18px;text-align:left"></div>
+    <button id="auth-btn" onclick="firebaseLogin()"
+      style="width:100%;padding:11px;font-size:14px;font-weight:600;background:#c0392b;color:#fff;border:none;border-radius:8px;cursor:pointer;font-family:inherit;transition:all .2s"
       onmouseover="this.style.background='#a93226'" onmouseout="this.style.background='#c0392b'">
-      进入系统
+      登 录
     </button>
   </div>
 </div>
 <script>
-(function(){
-  var PASS='hxh2026',tries=0;
-  window.checkPw=function(){
-    var v=document.getElementById('pw-input').value;
-    if(v===PASS){
-      document.getElementById('pw-overlay').style.display='none';
+function firebaseLogin(){
+  const email=document.getElementById('auth-email').value.trim();
+  const password=document.getElementById('auth-password').value;
+  const errEl=document.getElementById('auth-error');
+  const btn=document.getElementById('auth-btn');
+  if(!email||!password){
+    errEl.textContent='请输入邮箱和密码';
+    return;
+  }
+  btn.disabled=true;
+  btn.textContent='登录中...';
+  firebase.auth().signInWithEmailAndPassword(email,password)
+    .then(user=>{
+      document.getElementById('auth-overlay').style.display='none';
       document.getElementById('app').style.display='block';
       if(window._appReady)window._appReady();
-    }else{
-      tries++;
-      document.getElementById('pw-error').textContent='密码错误，请重试';
-      document.getElementById('pw-input').value='';
-      document.getElementById('pw-input').focus();
-    }
-  };
-  document.addEventListener('DOMContentLoaded',function(){document.getElementById('pw-input').focus();});
-})();
+    })
+    .catch(error=>{
+      errEl.textContent=error.message||'登录失败';
+      document.getElementById('auth-password').value='';
+      btn.disabled=false;
+      btn.textContent='登 录';
+    });
+}
+document.addEventListener('DOMContentLoaded',function(){document.getElementById('auth-email').focus();});
 </script>
 
 <!-- 主应用（密码通过后显示） -->
@@ -211,6 +225,7 @@ label{font-size:12px;font-weight:500;color:var(--t2);margin-bottom:4px;display:b
         <div class="sdot" id="sdot"></div>
         <span id="slabel">本地</span>
       </div>
+      <button class="btn btn-sm btn-ghost" onclick="firebaseLogout()" title="退出登录"><i class="ti ti-logout"></i> 退出</button>
     </div>
   </header>
 
@@ -251,7 +266,10 @@ label{font-size:12px;font-weight:500;color:var(--t2);margin-bottom:4px;display:b
       <div class="card">
         <div class="ch">
           <span class="ct">库存状态 <span id="inv-count" style="font-size:12px;font-weight:400;color:var(--t3)"></span></span>
-          <button class="btn btn-primary btn-sm" onclick="openAddStock()"><i class="ti ti-plus"></i> 新增库存</button>
+          <div style="display:flex;gap:6px">
+            <button class="btn btn-sm btn-ghost" onclick="openWarehouseManager()" title="管理仓库"><i class="ti ti-warehouse"></i> 仓库管理</button>
+            <button class="btn btn-primary btn-sm" onclick="openAddStock()"><i class="ti ti-plus"></i> 新增库存</button>
+          </div>
         </div>
         <!-- 筛选栏 -->
         <div class="tb" style="gap:8px;flex-wrap:wrap">
@@ -334,6 +352,15 @@ label{font-size:12px;font-weight:500;color:var(--t2);margin-bottom:4px;display:b
               </div>
               <div class="fg"><label>Select Model</label>
                 <select id="q-model" onchange="onMachineSelect()"><option value="">-- Select from inventory --</option></select>
+              </div>
+              <!-- 仓库信息（自动关联） -->
+              <div class="fgrid">
+                <div class="fg"><label>所在仓库 Warehouse</label>
+                  <input type="text" id="q-warehouse-name" readonly style="background:var(--bg2);color:var(--t2)">
+                </div>
+                <div class="fg"><label>仓库地址 Address</label>
+                  <input type="text" id="q-warehouse-addr" readonly style="background:var(--bg2);color:var(--t2)">
+                </div>
               </div>
               <div class="fgrid">
                 <div class="fg"><label>Quantity</label><input type="number" id="q-qty" value="1" min="1" oninput="updateQuote()"></div>
@@ -479,6 +506,19 @@ label{font-size:12px;font-weight:500;color:var(--t2);margin-bottom:4px;display:b
                   <div class="fg"><label>HS Code</label><input type="text" id="q-hs-code" value="8502.20.0000" oninput="updateQuote()"></div>
                 </div>
               </div>
+              <!-- 申报价值 -->
+              <div style="border-top:1px solid var(--bdr);padding-top:10px;margin-top:4px">
+                <div style="font-size:11px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px">申报价值（仅内部记录）</div>
+                <div class="fgrid">
+                  <div class="fg">
+                    <label><input type="checkbox" id="q-declared-same-as-invoice" onchange="toggleDeclaredValueField()" checked> 与发票价值相同</label>
+                  </div>
+                  <div class="fg" id="q-declared-value-wrap" style="display:none">
+                    <label>申报价值 (USD)</label>
+                    <input type="number" id="q-declared-value" placeholder="如与发票不同，请填写此项" step="0.01">
+                  </div>
+                </div>
+              </div>
               <!-- 汇率换算（仅内部参考） -->
               <div style="border-top:1px solid var(--bdr);padding-top:10px;margin-top:4px">
                 <div style="font-size:11px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px">汇率参考（内部，不出单据）</div>
@@ -619,6 +659,18 @@ const USE_FIREBASE = !!(FIREBASE_CONFIG.apiKey && FIREBASE_CONFIG.databaseURL);
 const STORAGE_KEY = 'hxh_crm_v4';
 let db = null;
 
+// 立即初始化 Firebase（不等任何事件）
+if (USE_FIREBASE) {
+  try {
+    if (!firebase.apps || !firebase.apps.length) {
+      firebase.initializeApp(FIREBASE_CONFIG);
+    }
+    db = firebase.database();
+  } catch(e) {
+    console.error('Firebase init error:', e);
+  }
+}
+
 function setSyncStatus(s) {
   const dot = document.getElementById('sdot');
   const lbl = document.getElementById('slabel');
@@ -733,6 +785,38 @@ function migrateState(s) {
     {id:2,name:"Shanghai Naifei Int'l Trade Co., Ltd.",bank:'DBS Bank (Hong Kong) Limited',account:'79969931276762',swift:'DHBKHKHH',currency:'USD',notes:'Branch: 016-478'}
   ];
   if (!s.nextBankAccountId) s.nextBankAccountId = 3;
+  // 线索兼容性处理：customerNeeds 文本 → 结构化对象
+  if (s.leads) {
+    s.leads.forEach(l => {
+      if (!l.rating) l.rating = '';
+      if (!l.timezone) l.timezone = '';
+      if (!l.importRestrictions) l.importRestrictions = '';
+      if (typeof l.customerNeeds === 'string') {
+        l.customerNeeds = {powerKw:'',purpose:'',location:'',frequency:'',budgetUsd:'',deliveryTime:'',otherRequirements:l.customerNeeds||''};
+      }
+      if (!l.customerNeeds || typeof l.customerNeeds !== 'object') {
+        l.customerNeeds = {powerKw:'',purpose:'',location:'',frequency:'',budgetUsd:'',deliveryTime:'',otherRequirements:''};
+      }
+      if (!l.bargainLog) l.bargainLog = [];
+      if (!l.visitLog) l.visitLog = [];
+    });
+  }
+  // 库存兼容性处理
+  if (s.inventory) {
+    s.inventory.forEach(i => {
+      if (!i.engineSN) i.engineSN = '';
+      if (!i.alternatorSN) i.alternatorSN = '';
+      if (i.isDG === undefined) i.isDG = false;
+      if (!i.unNo) i.unNo = '';
+      if (!i.dgClass) i.dgClass = '';
+      if (!i.purchaseCost) i.purchaseCost = 0;
+      if (!i.refurbishCost) i.refurbishCost = 0;
+      if (!i.storageCost) i.storageCost = 0;
+      if (!i.expectedProfit) i.expectedProfit = 0;
+      if (!i.images) i.images = [];
+      if (!i.exportData) i.exportData = {};
+    });
+  }
   // 检测是否为旧格式（有qty、无machineId）
   if (s.inventory && s.inventory.length && s.inventory[0].qty !== undefined && !s.inventory[0].machineId) {
     const year = new Date().getFullYear();
@@ -1080,6 +1164,12 @@ function fmtDate(d=new Date()) { return d.toLocaleDateString('en-GB',{day:'2-dig
 function addDays(d,n) { const r=new Date(d); r.setDate(r.getDate()+n); return r; }
 function leadTime(port) { return /Nigeria|Kenya|Ghana|Tanzania|Cameroon/i.test(port)?'25–40':'15–30'; }
 
+function toggleDeclaredValueField() {
+  const checkbox=document.getElementById('q-declared-same-as-invoice');
+  const wrap=document.getElementById('q-declared-value-wrap');
+  if(wrap) wrap.style.display=checkbox?.checked?'none':'';
+}
+
 function toggleWarrantyFields() {
   const t=document.getElementById('q-warranty-type')?.value;
   const d=document.getElementById('q-warranty-detail');
@@ -1115,11 +1205,24 @@ function autoInsuranceTerm() {
 function onMachineSelect() {
   const machineId=document.getElementById('q-model').value;
   const item=machineId?state.inventory.find(x=>x.machineId===machineId):null;
-  const addrEl=document.getElementById('q-pickup-addr');
-  if(addrEl&&item) {
-    const addr=getPickupAddress(item.warehouse);
-    if(addr) addrEl.value=addr;
+
+  // 填充仓库名和仓库地址
+  const whNameEl=document.getElementById('q-warehouse-name');
+  const whAddrEl=document.getElementById('q-warehouse-addr');
+  const pickupAddrEl=document.getElementById('q-pickup-addr');
+
+  if(item) {
+    const whName=item.warehouse||'';
+    const whAddr=getPickupAddress(whName)||'';
+
+    if(whNameEl) whNameEl.value=whName;
+    if(whAddrEl) whAddrEl.value=whAddr;
+    if(pickupAddrEl&&!pickupAddrEl.value) pickupAddrEl.value=whAddr;
+  } else {
+    if(whNameEl) whNameEl.value='';
+    if(whAddrEl) whAddrEl.value='';
   }
+
   // 装箱单自动带入净重 & 体积
   if(item) {
     const nw=document.getElementById('pl-nw');
@@ -1152,6 +1255,8 @@ function calcValues() {
   const total        =priceMachine+priceFreight+priceInsurance+otherAmt;
   const unitPrice    =qty>1?(priceMachine/qty):priceMachine;
   // 物流字段
+  const warehouseName=document.getElementById('q-warehouse-name')?.value.trim()||'';
+  const warehouseAddr=document.getElementById('q-warehouse-addr')?.value.trim()||'';
   const deliveryTime =document.getElementById('q-delivery-time')?.value.trim()||'';
   const pickupMethod =document.getElementById('q-pickup-method')?.value||'';
   const pickupAddr   =document.getElementById('q-pickup-addr')?.value.trim()||'';
@@ -1180,14 +1285,19 @@ function calcValues() {
   const termDispute=document.getElementById('q-term-dispute')?.value.trim()||'';
   const bankCharges=document.getElementById('q-bank-charges')?.value||'SHA';
   const hsCode=document.getElementById('q-hs-code')?.value.trim()||'8502.20.0000';
+  const declaredSameAsInvoice=document.getElementById('q-declared-same-as-invoice')?.checked!==false;
+  const declaredValue=parseFloat(document.getElementById('q-declared-value')?.value)||0;
+  const fxRate=parseFloat(document.getElementById('q-fx-rate')?.value)||0;
+  const fxCurrency=document.getElementById('q-fx-currency')?.value.trim()||'';
   return {item,qty,inco,company,address,port,loading,refPi,
           priceMachine,priceFreight,priceInsurance,otherName,otherAmt,
           unitPrice,total,deposit:total*0.3,balance:total*0.7,
-          deliveryTime,pickupMethod,pickupAddr,pickupReq,inspection,
+          warehouseName,warehouseAddr,deliveryTime,pickupMethod,pickupAddr,pickupReq,inspection,
           plPkgs,plPacking,plNw,plGw,plCbm,plRemarks,
           sc,ciCompany,
           bankAccount,warrantyType,warrantyPeriod,warrantyScope,warrantyStart,
-          termInspection,termInsurance,termForce,termDispute,bankCharges,hsCode};
+          termInspection,termInsurance,termForce,termDispute,bankCharges,hsCode,
+          declaredSameAsInvoice,declaredValue,fxRate,fxCurrency};
 }
 
 const SELLER_ADDR='No.6, Lane 3, Shatian Environmental Protection Middle Road, Shatian Town, Dongguan City, Guangdong Province, China';
@@ -1275,11 +1385,13 @@ function printDoc() {
 }
 
 function logisticsBlock(v) {
-  if(!v.deliveryTime&&!v.pickupMethod&&!v.pickupAddr&&!v.pickupReq&&!v.inspection) return '';
+  if(!v.warehouseName&&!v.deliveryTime&&!v.pickupMethod&&!v.pickupAddr&&!v.pickupReq&&!v.inspection) return '';
   return `<div style="margin-top:12px;page-break-inside:avoid">
     <div style="font-weight:700;font-size:10.5px;text-transform:uppercase;letter-spacing:.07em;color:#888;margin-bottom:6px">Delivery &amp; Logistics</div>
     <div style="background:#f8f7f4;border:1px solid #e4e1db;border-radius:6px;padding:10px 14px;font-size:11.5px">
       <div class="doc-kv">
+        ${v.warehouseName?`<span>Warehouse / 仓库:</span><span>${v.warehouseName}</span>`:''}
+        ${v.warehouseAddr?`<span>Warehouse Address / 仓库地址:</span><span>${v.warehouseAddr.replace(/\n/g,'<br>')}</span>`:''}
         ${v.deliveryTime?`<span>Delivery Lead Time:</span><span>${v.deliveryTime}</span>`:''}
         ${v.pickupMethod?`<span>Pickup / Delivery:</span><span>${v.pickupMethod}</span>`:''}
         ${v.pickupAddr?`<span>Pickup Address:</span><span>${v.pickupAddr.replace(/\n/g,'<br>')}</span>`:''}
@@ -2642,8 +2754,45 @@ function openAddLead() {
                 <button type="button" class="btn btn-sm btn-ghost" onclick="document.getElementById('nl-import-restrictions').value='需BPS认证（菲律宾标准局）；发电机组归类HS 8502需IEC合规'">🇵🇭 Philippines</button>
               </div>
             </div>
-            <div class="fg"><label>结构化需求（功率/品牌/数量/预算）</label>
-              <textarea id="nl-customer-needs" rows="2" placeholder="e.g. 500-1000kW Cummins x3，预算$300k，FOB价接受"></textarea>
+            <div style="border-top:1px solid var(--bdr);padding-top:10px;margin-top:10px">
+              <div style="font-size:11px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">客户需求表</div>
+              <div class="fgrid">
+                <div class="fg"><label>所需功率 (kW)</label>
+                  <input type="text" id="nl-needs-power" placeholder="e.g. 500-1000">
+                </div>
+                <div class="fg"><label>用途</label>
+                  <select id="nl-needs-purpose">
+                    <option value="">-- 选择 --</option>
+                    <option value="Standby">备用电源 Standby</option>
+                    <option value="Prime">主用电源 Prime</option>
+                    <option value="Peak">峰值调节 Peak</option>
+                  </select>
+                </div>
+              </div>
+              <div class="fgrid">
+                <div class="fg"><label>安装地点</label>
+                  <input type="text" id="nl-needs-location" placeholder="e.g. 数据中心, 医院">
+                </div>
+                <div class="fg"><label>用电制式</label>
+                  <select id="nl-needs-frequency">
+                    <option value="">-- 选择 --</option>
+                    <option value="50Hz">50Hz</option>
+                    <option value="60Hz">60Hz</option>
+                    <option value="不确定">不确定</option>
+                  </select>
+                </div>
+              </div>
+              <div class="fgrid">
+                <div class="fg"><label>预算范围 (USD)</label>
+                  <input type="text" id="nl-needs-budget" placeholder="e.g. $100k-$200k">
+                </div>
+                <div class="fg"><label>期望交货期</label>
+                  <input type="text" id="nl-needs-delivery" placeholder="e.g. 45天内">
+                </div>
+              </div>
+              <div class="fg"><label>其他要求</label>
+                <textarea id="nl-needs-other" rows="2" placeholder="备注、特殊要求等"></textarea>
+              </div>
             </div>
           </div>
           ${opSelect('nl')}
@@ -2718,8 +2867,45 @@ function editLead(id) {
             <div class="fg"><label>进口限制 / 合规要求</label>
               <textarea id="el-import-restrictions" rows="2" placeholder="e.g. 需SON认证...">${l.importRestrictions||''}</textarea>
             </div>
-            <div class="fg"><label>结构化需求（功率/品牌/数量/预算）</label>
-              <textarea id="el-customer-needs" rows="2" placeholder="e.g. 500-1000kW Cummins x3，预算$300k，FOB价接受">${l.customerNeeds||''}</textarea>
+            <div style="border-top:1px solid var(--bdr);padding-top:10px;margin-top:10px">
+              <div style="font-size:11px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">客户需求表</div>
+              <div class="fgrid">
+                <div class="fg"><label>所需功率 (kW)</label>
+                  <input type="text" id="el-needs-power" value="${l.customerNeeds?.powerKw||''}" placeholder="e.g. 500-1000">
+                </div>
+                <div class="fg"><label>用途</label>
+                  <select id="el-needs-purpose">
+                    <option value="" ${!l.customerNeeds?.purpose?'selected':''}>-- 选择 --</option>
+                    <option value="Standby" ${l.customerNeeds?.purpose==='Standby'?'selected':''}>备用电源 Standby</option>
+                    <option value="Prime" ${l.customerNeeds?.purpose==='Prime'?'selected':''}>主用电源 Prime</option>
+                    <option value="Peak" ${l.customerNeeds?.purpose==='Peak'?'selected':''}>峰值调节 Peak</option>
+                  </select>
+                </div>
+              </div>
+              <div class="fgrid">
+                <div class="fg"><label>安装地点</label>
+                  <input type="text" id="el-needs-location" value="${l.customerNeeds?.location||''}" placeholder="e.g. 数据中心, 医院">
+                </div>
+                <div class="fg"><label>用电制式</label>
+                  <select id="el-needs-frequency">
+                    <option value="" ${!l.customerNeeds?.frequency?'selected':''}>-- 选择 --</option>
+                    <option value="50Hz" ${l.customerNeeds?.frequency==='50Hz'?'selected':''}>50Hz</option>
+                    <option value="60Hz" ${l.customerNeeds?.frequency==='60Hz'?'selected':''}>60Hz</option>
+                    <option value="不确定" ${l.customerNeeds?.frequency==='不确定'?'selected':''}>不确定</option>
+                  </select>
+                </div>
+              </div>
+              <div class="fgrid">
+                <div class="fg"><label>预算范围 (USD)</label>
+                  <input type="text" id="el-needs-budget" value="${l.customerNeeds?.budgetUsd||''}" placeholder="e.g. $100k-$200k">
+                </div>
+                <div class="fg"><label>期望交货期</label>
+                  <input type="text" id="el-needs-delivery" value="${l.customerNeeds?.deliveryTime||''}" placeholder="e.g. 45天内">
+                </div>
+              </div>
+              <div class="fg"><label>其他要求</label>
+                <textarea id="el-needs-other" rows="2" placeholder="备注、特殊要求等">${l.customerNeeds?.otherRequirements||''}</textarea>
+              </div>
             </div>
           </div>
           ${opSelect('el')}
@@ -2747,7 +2933,17 @@ function saveLead() {
     rating:document.getElementById('nl-rating')?.value||'',
     timezone:document.getElementById('nl-timezone')?.value||'',
     importRestrictions:document.getElementById('nl-import-restrictions')?.value.trim()||'',
-    customerNeeds:document.getElementById('nl-customer-needs')?.value.trim()||'',
+    customerNeeds:{
+      powerKw:document.getElementById('nl-needs-power')?.value.trim()||'',
+      purpose:document.getElementById('nl-needs-purpose')?.value||'',
+      location:document.getElementById('nl-needs-location')?.value.trim()||'',
+      frequency:document.getElementById('nl-needs-frequency')?.value||'',
+      budgetUsd:document.getElementById('nl-needs-budget')?.value.trim()||'',
+      deliveryTime:document.getElementById('nl-needs-delivery')?.value.trim()||'',
+      otherRequirements:document.getElementById('nl-needs-other')?.value.trim()||''
+    },
+    bargainLog:[],
+    visitLog:[],
     created:new Date().toISOString().split('T')[0]});
   addActivity(`新增线索：${c} (${co})`,'system',op);saveState();closeModal();render();
 }
@@ -2767,7 +2963,15 @@ function saveEditLead(id) {
   l.rating=document.getElementById('el-rating')?.value||l.rating||'';
   l.timezone=document.getElementById('el-timezone')?.value||l.timezone||'';
   l.importRestrictions=document.getElementById('el-import-restrictions')?.value.trim()||l.importRestrictions||'';
-  l.customerNeeds=document.getElementById('el-customer-needs')?.value.trim()||l.customerNeeds||'';
+  l.customerNeeds={
+    powerKw:document.getElementById('el-needs-power')?.value.trim()||l.customerNeeds?.powerKw||'',
+    purpose:document.getElementById('el-needs-purpose')?.value||l.customerNeeds?.purpose||'',
+    location:document.getElementById('el-needs-location')?.value.trim()||l.customerNeeds?.location||'',
+    frequency:document.getElementById('el-needs-frequency')?.value||l.customerNeeds?.frequency||'',
+    budgetUsd:document.getElementById('el-needs-budget')?.value.trim()||l.customerNeeds?.budgetUsd||'',
+    deliveryTime:document.getElementById('el-needs-delivery')?.value.trim()||l.customerNeeds?.deliveryTime||'',
+    otherRequirements:document.getElementById('el-needs-other')?.value.trim()||l.customerNeeds?.otherRequirements||''
+  };
   addActivity(`更新线索：${l.company}`,'system',getOp('el'));saveState();closeModal();render();
 }
 
@@ -2954,10 +3158,129 @@ function getWarehouse(selId, inputId) {
   return sel.value;
 }
 
+function updateWarehouseAddr() {
+  const warehouseName = getWarehouse('es-warehouse', 'es-warehouse-custom');
+  const addrEl = document.getElementById('es-warehouse-addr');
+  if (addrEl) {
+    const addr = getPickupAddress(warehouseName);
+    addrEl.value = addr || '';
+  }
+}
+
+function updateWarehouseAddrNew() {
+  const warehouseName = getWarehouse('ns-warehouse', 'ns-warehouse-custom');
+  const addrEl = document.getElementById('ns-warehouse-addr');
+  if (addrEl) {
+    const addr = getPickupAddress(warehouseName);
+    addrEl.value = addr || '';
+  }
+}
+
+function saveWarehouseAddrFromInventory(whSelId, whCustomId, addrId) {
+  const warehouseName = getWarehouse(whSelId, whCustomId);
+  const address = document.getElementById(addrId)?.value.trim() || '';
+  if (!warehouseName || !address) {
+    alert('请填写仓库名称和地址');
+    return;
+  }
+  if (!state.warehouses) state.warehouses = [];
+  const existWh = state.warehouses.find(w => w.name === warehouseName);
+  if (existWh) {
+    existWh.address = address;
+  } else {
+    if (!state.nextWarehouseId) state.nextWarehouseId = 8;
+    state.warehouses.push({
+      id: state.nextWarehouseId++,
+      name: warehouseName,
+      address: address
+    });
+  }
+  saveState();
+  alert('仓库地址已保存');
+}
+
 function toggleDgFields(prefix) {
   const checked=document.getElementById(`${prefix}-is-dg`)?.checked;
   const el=document.getElementById(`${prefix}-dg-detail`);
   if(el) el.style.display=checked?'':'none';
+}
+
+// ── 仓库管理 ─────────────────────────────────────────────
+function openWarehouseManager() {
+  if (!state.warehouses) state.warehouses = [];
+  const rows = state.warehouses.map(w => `
+    <div style="border:1px solid var(--bdr);border-radius:6px;padding:12px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:flex-start;gap:10px">
+      <div style="flex:1">
+        <div style="font-weight:600;font-size:13px">${w.name}</div>
+        <textarea id="wm-addr-${w.id}" rows="2" style="width:100%;margin-top:6px;padding:6px;border:1px solid var(--bdr);border-radius:4px;font-size:12px;font-family:inherit">${w.address||''}</textarea>
+      </div>
+      <div style="display:flex;gap:6px;flex-direction:column">
+        <button class="btn btn-sm btn-primary" onclick="saveWarehouseEdit(${w.id})" title="保存"><i class="ti ti-check"></i></button>
+        <button class="btn btn-sm btn-ghost btn-danger" onclick="deleteWarehouse(${w.id})" title="删除"><i class="ti ti-trash"></i></button>
+      </div>
+    </div>`).join('');
+
+  document.getElementById('modal-container').innerHTML = `
+    <div class="moverlay" onclick="if(event.target===this)closeModal()">
+      <div class="modal" style="width:520px;max-height:70vh;overflow-y:auto">
+        <div class="mhdr"><span class="mt">仓库管理</span><button class="mx" onclick="closeModal()">×</button></div>
+        <div class="fcol">
+          <div style="margin-bottom:14px;max-height:40vh;overflow-y:auto">
+            ${rows}
+          </div>
+          <div style="border-top:1px solid var(--bdr);padding-top:12px;margin-top:12px">
+            <div style="font-size:12px;font-weight:600;color:var(--t2);margin-bottom:8px">新增仓库</div>
+            <div class="fg"><label>仓库名称</label><input type="text" id="wm-new-name" placeholder="e.g. 深圳仓、杭州仓"></div>
+            <div class="fg"><label>详细地址</label><textarea id="wm-new-addr" rows="3" placeholder="完整地址信息" style="margin-top:6px"></textarea></div>
+          </div>
+        </div>
+        <div class="mfoot">
+          <button class="btn" onclick="closeModal()">关闭</button>
+          <button class="btn btn-primary" onclick="addNewWarehouse()">新增仓库</button>
+        </div>
+      </div>
+    </div>`;
+}
+
+function saveWarehouseEdit(id) {
+  const wh = state.warehouses.find(w => w.id === id);
+  if (!wh) return;
+  const addr = document.getElementById(`wm-addr-${id}`)?.value.trim() || '';
+  wh.address = addr;
+  saveState();
+  alert('仓库地址已保存');
+  openWarehouseManager(); // 刷新面板
+}
+
+function deleteWarehouse(id) {
+  if (!confirm('确认删除此仓库？')) return;
+  state.warehouses = (state.warehouses || []).filter(w => w.id !== id);
+  saveState();
+  openWarehouseManager(); // 刷新面板
+}
+
+function addNewWarehouse() {
+  const name = document.getElementById('wm-new-name')?.value.trim();
+  const addr = document.getElementById('wm-new-addr')?.value.trim();
+  if (!name || !addr) {
+    alert('请填写仓库名称和地址');
+    return;
+  }
+  if (!state.warehouses) state.warehouses = [];
+  // 检查重名
+  if (state.warehouses.find(w => w.name === name)) {
+    alert('仓库名称已存在');
+    return;
+  }
+  if (!state.nextWarehouseId) state.nextWarehouseId = 8;
+  state.warehouses.push({
+    id: state.nextWarehouseId++,
+    name: name,
+    address: addr
+  });
+  saveState();
+  alert('新仓库已添加');
+  openWarehouseManager(); // 刷新面板
 }
 
 function openAddStock() {
@@ -3003,10 +3326,16 @@ function openAddStock() {
             <div class="fg"><label>净重 (kg)</label><input type="number" id="ns-weight" placeholder="5800"></div>
           </div>
           <div class="fg"><label>所在仓库</label>
-            <select id="ns-warehouse" onchange="toggleWarehouse(this,'ns-warehouse-custom')">
+            <select id="ns-warehouse" onchange="toggleWarehouse(this,'ns-warehouse-custom');updateWarehouseAddrNew()">
               ${warehouseOptions()}
             </select>
-            <input type="text" id="ns-warehouse-custom" placeholder="填写仓库名称" style="display:none;margin-top:6px">
+            <input type="text" id="ns-warehouse-custom" placeholder="填写仓库名称" style="display:none;margin-top:6px" onchange="updateWarehouseAddrNew()">
+          </div>
+          <div class="fg"><label>仓库地址</label>
+            <textarea id="ns-warehouse-addr" rows="2" placeholder="仓库详细地址"></textarea>
+            <div style="margin-top:4px;font-size:11px;color:var(--t3)">
+              <button type="button" class="btn btn-sm btn-ghost" onclick="saveWarehouseAddrFromInventory('ns-warehouse','ns-warehouse-custom','ns-warehouse-addr')">保存地址到系统</button>
+            </div>
           </div>
           <!-- 序列号 -->
           <div style="border-top:1px solid var(--bdr);padding-top:10px;margin-top:4px">
@@ -3114,12 +3443,18 @@ function editStock(id) {
             <div class="fg"><label>净重 (kg)</label><input type="number" id="es-weight" value="${i.weight||''}"></div>
           </div>
           <div class="fg"><label>所在仓库</label>
-            <select id="es-warehouse" onchange="toggleWarehouse(this,'es-warehouse-custom')">
+            <select id="es-warehouse" onchange="toggleWarehouse(this,'es-warehouse-custom');updateWarehouseAddr()">
               ${warehouseOptions(i.warehouse||'')}
             </select>
             <input type="text" id="es-warehouse-custom" placeholder="填写仓库名称"
               value="${isCustomWh?i.warehouse:''}"
-              style="display:${isCustomWh?'':'none'};margin-top:6px">
+              style="display:${isCustomWh?'':'none'};margin-top:6px" onchange="updateWarehouseAddr()">
+          </div>
+          <div class="fg"><label>仓库地址</label>
+            <textarea id="es-warehouse-addr" rows="2" placeholder="仓库详细地址">${getPickupAddress(i.warehouse||'')||''}</textarea>
+            <div style="margin-top:4px;font-size:11px;color:var(--t3)">
+              <button type="button" class="btn btn-sm btn-ghost" onclick="saveWarehouseAddr('es-warehouse','es-warehouse-custom','es-warehouse-addr')">保存地址到系统</button>
+            </div>
           </div>
           <!-- 序列号 -->
           <div style="border-top:1px solid var(--bdr);padding-top:10px;margin-top:4px">
@@ -3425,11 +3760,49 @@ function bar(label,val,max,unit,pct,ok) {
 function closeModal(){document.getElementById('modal-container').innerHTML='';}
 
 window._appReady = function() {
-  if (USE_FIREBASE) {
-    try { firebase.initializeApp(FIREBASE_CONFIG); db=firebase.database(); } catch(e){}
-  }
-  loadState();
+  // Firebase initialization 已在 setupAuthListener() 中完成
+  // loadState() 也已在 setupAuthListener() 中调用
 };
+
+// Firebase Auth 监听（Firebase 已在顶层初始化）
+function setupAuthListener() {
+  if (!USE_FIREBASE) return;
+
+  // 设置 Auth 状态监听
+  firebase.auth().onAuthStateChanged(user => {
+    if (user) {
+      // 已登录 - 隐藏登录框，显示应用
+      document.getElementById('auth-overlay').style.display = 'none';
+      document.getElementById('app').style.display = 'block';
+      loadState(); // 加载应用数据
+    } else {
+      // 未登录 - 显示登录框，隐藏应用
+      document.getElementById('auth-overlay').style.display = 'flex';
+      document.getElementById('app').style.display = 'none';
+    }
+  });
+}
+
+function firebaseLogout() {
+  if (!USE_FIREBASE) {
+    alert('未启用 Firebase');
+    return;
+  }
+  firebase.auth().signOut()
+    .then(() => {
+      // 退出成功，onAuthStateChanged 会自动显示登录框
+    })
+    .catch(error => {
+      alert('退出失败: ' + error.message);
+    });
+}
+
+// 页面加载完成后初始化 Auth 监听
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', setupAuthListener);
+} else {
+  setupAuthListener();
+}
 </script>
 </body>
 </html>
